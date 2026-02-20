@@ -7,7 +7,8 @@ import { UserPlus, Mail, Lock, CheckCircle2 } from 'lucide-react';
 const Register = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [adminSecret, setAdminSecret] = useState('');
     const { register } = useAuth();
     const navigate = useNavigate();
 
@@ -18,8 +19,8 @@ const Register = () => {
             return;
         }
         try {
-            await register(email, password, 'student');
-            alert('Account discovered! Redirecting to login...');
+            await register(email, password, isAdmin ? 'admin' : 'student', adminSecret);
+            alert(isAdmin ? 'Admin account created successfully!' : 'Account discovered! Redirecting to login...');
             navigate('/login');
         } catch (err) {
             setError(err.response?.data?.error || 'Registration failed');
@@ -33,24 +34,24 @@ const Register = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="glass-card"
-                style={{ maxWidth: '450px', margin: '0 auto', borderTop: '4px solid var(--secondary)' }}
+                style={{ maxWidth: '450px', margin: '0 auto', borderTop: isAdmin ? '4px solid var(--primary)' : '4px solid var(--secondary)' }}
             >
                 <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
                     <div style={{
                         width: '64px',
                         height: '64px',
-                        background: 'rgba(212, 175, 55, 0.1)',
+                        background: isAdmin ? 'rgba(52, 152, 219, 0.1)' : 'rgba(212, 175, 55, 0.1)',
                         borderRadius: '100px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         margin: '0 auto 1.5rem',
-                        color: 'var(--secondary)'
+                        color: isAdmin ? 'var(--primary)' : 'var(--secondary)'
                     }}>
                         <UserPlus size={32} />
                     </div>
-                    <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Create Account</h2>
-                    <p style={{ color: 'var(--text-muted)' }}>Join the SREC sentiment network</p>
+                    <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{isAdmin ? 'Admin Register' : 'Create Account'}</h2>
+                    <p style={{ color: 'var(--text-muted)' }}>{isAdmin ? 'Register with secure access key' : 'Join the SREC sentiment network'}</p>
                 </div>
 
                 {error && (
@@ -75,22 +76,19 @@ const Register = () => {
                 <form onSubmit={handleSubmit}>
                     <div style={{ marginBottom: '1.5rem' }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Mail size={14} /> Student Email ID
+                            <Mail size={14} /> {isAdmin ? 'Admin Email ID' : 'Student Email ID'}
                         </label>
                         <input
                             type="email"
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="rollnumber@srecnandyal.edu.in"
+                            placeholder="email@srecnandyal.edu.in"
                         />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                            <CheckCircle2 size={12} /> Verification will be strictly enforced.
-                        </div>
                     </div>
-                    <div style={{ marginBottom: '2.5rem' }}>
+                    <div style={{ marginBottom: '1.5rem' }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Lock size={14} /> Choose Password
+                            <Lock size={14} /> Password
                         </label>
                         <input
                             type="password"
@@ -100,8 +98,36 @@ const Register = () => {
                             placeholder="Min. 8 characters"
                         />
                     </div>
+
+                    <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <input
+                            type="checkbox"
+                            id="adminToggle"
+                            checked={isAdmin}
+                            onChange={(e) => setIsAdmin(e.target.checked)}
+                            style={{ width: 'auto' }}
+                        />
+                        <label htmlFor="adminToggle" style={{ fontSize: '0.9rem', cursor: 'pointer' }}>Register as Administrator</label>
+                    </div>
+
+                    {isAdmin && (
+                        <div style={{ marginBottom: '2rem' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Lock size={14} /> Admin Secret Key
+                            </label>
+                            <input
+                                type="password"
+                                required
+                                value={adminSecret}
+                                onChange={(e) => setAdminSecret(e.target.value)}
+                                placeholder="Enter secure registration key"
+                                style={{ border: '2px solid var(--primary)' }}
+                            />
+                        </div>
+                    )}
+
                     <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '15px' }}>
-                        Register Now
+                        {isAdmin ? 'Create Admin Account' : 'Register Now'}
                     </button>
                 </form>
 
