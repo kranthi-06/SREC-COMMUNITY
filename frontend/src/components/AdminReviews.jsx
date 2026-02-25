@@ -13,7 +13,9 @@ const AdminReviews = () => {
     const [questions, setQuestions] = useState([
         { id: Date.now().toString(), text: '', type: 'OPTION_BASED', options: ['Good', 'Average', 'Poor'], scale: 5 }
     ]);
-    const [filters, setFilters] = useState({ department: '', year: '' });
+    const [filterGroups, setFilterGroups] = useState([
+        { id: 1, department: '', year: '' }
+    ]);
     const [sending, setSending] = useState(false);
 
     // Analytics Mode States
@@ -49,6 +51,22 @@ const AdminReviews = () => {
         } catch (error) {
             console.error('Failed to load analytics', error);
         }
+    };
+
+    const addFilterGroup = () => {
+        setFilterGroups([...filterGroups, { id: Date.now(), department: '', year: '' }]);
+    };
+
+    const removeFilterGroup = (id) => {
+        if (filterGroups.length === 1) {
+            setFilterGroups([{ id: Date.now(), department: '', year: '' }]);
+            return;
+        }
+        setFilterGroups(filterGroups.filter(g => g.id !== id));
+    };
+
+    const updateFilterGroup = (id, field, value) => {
+        setFilterGroups(filterGroups.map(g => g.id === id ? { ...g, [field]: value } : g));
     };
 
     // Form Builder Functions
@@ -132,11 +150,12 @@ const AdminReviews = () => {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/reviews/admin/create`, {
                 title: formTitle,
                 questions: finalQuestions,
-                filters
+                filterGroups
             });
             setStatus({ type: 'success', text: res.data.message });
             setFormTitle('');
             setQuestions([{ id: Date.now().toString(), text: '', type: 'OPTION_BASED', options: ['Good', 'Average', 'Poor'], scale: 5 }]);
+            setFilterGroups([{ id: Date.now(), department: '', year: '' }]);
         } catch (error) {
             setStatus({ type: 'error', text: error.response?.data?.error || 'Failed to dispatch reviews' });
         } finally {
@@ -196,35 +215,57 @@ const AdminReviews = () => {
                                 />
                             </div>
 
-                            <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '3rem' }}>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-muted)' }}>Target Department Filter <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>(Optional)</span></label>
-                                    <select
-                                        value={filters.department} onChange={(e) => setFilters({ ...filters, department: e.target.value })}
-                                        style={{ width: '100%', padding: '12px 15px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }}
-                                    >
-                                        <option value="">All Departments</option>
-                                        <option value="cse">Computer Science (CSE)</option>
-                                        <option value="ece">Electronics (ECE)</option>
-                                        <option value="aiml">AI & ML</option>
-                                        <option value="eee">Electrical (EEE)</option>
-                                        <option value="mech">Mechanical</option>
-                                        <option value="civil">Civil Engineering</option>
-                                    </select>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '3rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '700' }}>
+                                    <Filter size={16} /> POPULATION SEGMENTATION (Targets)
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-muted)' }}>Target Year Filter <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>(Optional)</span></label>
-                                    <select
-                                        value={filters.year} onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-                                        style={{ width: '100%', padding: '12px 15px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }}
-                                    >
-                                        <option value="">All Years</option>
-                                        <option value="26">1st Year (2026 Batch)</option>
-                                        <option value="25">2nd Year (2025 Batch)</option>
-                                        <option value="24">3rd Year (2024 Batch)</option>
-                                        <option value="23">4th Year (2023 Batch)</option>
-                                    </select>
-                                </div>
+
+                                {filterGroups.map((group) => (
+                                    <div key={group.id} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                        <select
+                                            value={group.department}
+                                            onChange={(e) => updateFilterGroup(group.id, 'department', e.target.value)}
+                                            style={{ flex: 1, padding: '12px 15px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }}
+                                        >
+                                            <option value="">All Departments</option>
+                                            <option value="Computer Science & Engineering (CSE)">CSE</option>
+                                            <option value="Computer Science & Data Science (CSE-DS)">CSE-DS</option>
+                                            <option value="Computer Science & Artificial Intelligence (CSE-AIML)">CSE-AIML</option>
+                                            <option value="Electronics & Communication (ECE)">ECE</option>
+                                            <option value="Electrical & Electronics (EEE)">EEE</option>
+                                            <option value="Mechanical Engineering (MECH)">MECH</option>
+                                            <option value="Civil Engineering (CIVIL)">CIVIL</option>
+                                            <option value="Information Technology (IT)">IT</option>
+                                            <option value="Administration">Administration</option>
+                                        </select>
+                                        <select
+                                            value={group.year}
+                                            onChange={(e) => updateFilterGroup(group.id, 'year', e.target.value)}
+                                            style={{ flex: 1, padding: '12px 15px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }}
+                                        >
+                                            <option value="">All Years</option>
+                                            <option value="2026">1st Year (2026 Batch)</option>
+                                            <option value="2025">2nd Year (2025 Batch)</option>
+                                            <option value="2024">3rd Year (2024 Batch)</option>
+                                            <option value="2023">4th Year (2023 Batch)</option>
+                                        </select>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeFilterGroup(group.id)}
+                                            style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', padding: '12px', borderRadius: '8px', cursor: 'pointer' }}
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <button
+                                    type="button"
+                                    onClick={addFilterGroup}
+                                    style={{ alignSelf: 'flex-start', background: 'transparent', border: '1px dashed var(--glass-border)', color: 'var(--text-muted)', padding: '8px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.85rem' }}
+                                >
+                                    <PlusCircle size={16} /> Add population group
+                                </button>
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>

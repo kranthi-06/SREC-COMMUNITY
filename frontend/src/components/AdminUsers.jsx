@@ -189,12 +189,15 @@ const AdminUsers = () => {
                                 style={{ flex: 1, padding: '12px' }}
                             >
                                 <option value="">All Departments</option>
-                                <option value="CSE">CSE</option>
-                                <option value="ECE">ECE</option>
-                                <option value="AIML">AIML</option>
-                                <option value="EEE">EEE</option>
-                                <option value="MECH">MECH</option>
-                                <option value="CIVIL">CIVIL</option>
+                                <option value="Computer Science & Engineering (CSE)">CSE</option>
+                                <option value="Computer Science & Data Science (CSE-DS)">CSE-DS</option>
+                                <option value="Computer Science & Artificial Intelligence (CSE-AIML)">CSE-AIML</option>
+                                <option value="Electronics & Communication (ECE)">ECE</option>
+                                <option value="Electrical & Electronics (EEE)">EEE</option>
+                                <option value="Mechanical Engineering (MECH)">MECH</option>
+                                <option value="Civil Engineering (CIVIL)">CIVIL</option>
+                                <option value="Information Technology (IT)">IT</option>
+                                <option value="Administration">Administration</option>
                             </select>
                             <select
                                 className="form-input-wrapper"

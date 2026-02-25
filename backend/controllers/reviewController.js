@@ -40,42 +40,57 @@ exports.sendQuickReview = async (req, res) => {
 
 exports.createReviewRequest = async (req, res) => {
     try {
-        const { title, questions, filters } = req.body;
+        const { title, questions, filters, filterGroups } = req.body;
         const adminId = req.user.userId;
 
         if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
             return res.status(400).json({ error: 'Title and at least one question are mandatory.' });
         }
 
-        // Generate query to find right students
+        // Segment identification logic
+        const targetGroups = filterGroups || (filters ? [filters] : []);
+
         let queryStr = 'SELECT id FROM users WHERE role = $1';
         let vals = ['student'];
         let count = 2;
 
-        if (filters.department) {
-            queryStr += ` AND department = $${count}`;
-            vals.push(filters.department); // Removed .toLowerCase() as departments are mixed case now
-            count++;
-        }
-        if (filters.year) {
-            queryStr += ` AND batch_year = $${count}`; // Using batch_year column
-            vals.push(filters.year);
-            count++;
+        if (targetGroups.length > 0) {
+            const groupClauses = [];
+            targetGroups.forEach(group => {
+                const clauses = [];
+                if (group.department) {
+                    clauses.push(`department = $${count}`);
+                    vals.push(group.department);
+                    count++;
+                }
+                if (group.year) {
+                    clauses.push(`batch_year = $${count}`);
+                    vals.push(group.year);
+                    count++;
+                }
+                if (clauses.length > 0) {
+                    groupClauses.push(`(${clauses.join(' AND ')})`);
+                }
+            });
+
+            if (groupClauses.length > 0) {
+                queryStr += ` AND (${groupClauses.join(' OR ')})`;
+            }
         }
 
         const students = await db.query(queryStr, vals);
 
         if (students.rows.length === 0) {
-            return res.status(400).json({ error: 'No students found matching these filters.' });
+            return res.status(400).json({ error: 'Zero students found matching the selected population segments.' });
         }
 
         const insertReq = await db.query(`
             INSERT INTO review_requests (admin_id, title, questions, filters)
             VALUES ($1, $2, $3, $4) RETURNING id
-        `, [adminId, title, JSON.stringify(questions), JSON.stringify(filters)]);
+        `, [adminId, title, JSON.stringify(questions), JSON.stringify(targetGroups)]);
         const requestId = insertReq.rows[0].id;
 
-        // Insert into recipients
+        // Populate recipients
         for (const student of students.rows) {
             await db.query(`
                 INSERT INTO review_request_recipients (request_id, student_id)
@@ -83,10 +98,10 @@ exports.createReviewRequest = async (req, res) => {
             `, [requestId, student.id]);
         }
 
-        res.status(201).json({ message: `Successfully sent review form to ${students.rows.length} students` });
+        res.status(201).json({ message: `Successfully dispatched review form to ${students.rows.length} targeted students` });
     } catch (error) {
         console.error('Error creating review form:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: 'Server error: ' + error.message });
     }
 };
 
