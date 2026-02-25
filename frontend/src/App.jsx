@@ -80,53 +80,52 @@ function AppContent() {
           <div className="nav-container">
             <Link to="/" className="logo">
               <div className="logo-icon">
-                <Activity size={20} />
+                <Activity size={18} />
               </div>
               CampusPulse
             </Link>
 
-            <ul className="nav-links">
+            <ul className="nav-main">
               <li>
-                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <HomeIcon size={18} /> Home
+                <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>
+                  <HomeIcon size={18} /> <span>Home</span>
                 </Link>
               </li>
 
               {user && (
                 <>
                   <li>
-                    <Link to="/community" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <MessagesSquare size={18} /> Community
+                    <Link to="/community" className={`nav-link ${location.pathname === '/community' ? 'active' : ''}`}>
+                      <MessagesSquare size={18} /> <span>Community</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="/events" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <CalendarDays size={18} /> Events
+                    <Link to="/events" className={`nav-link ${location.pathname === '/events' ? 'active' : ''}`}>
+                      <CalendarDays size={18} /> <span>Events</span>
                     </Link>
                   </li>
-                  <>{/* Private reviews are fetched strictly via inbox, no public submit link allowed */}</>
                   {['admin', 'editor_admin', 'hod', 'principal', 'faculty', 'black_hat_admin'].includes(user.role) && (
                     <>
                       <li>
-                        <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <LayoutDashboard size={18} /> Dashboard
+                        <Link to="/dashboard" className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>
+                          <LayoutDashboard size={18} /> <span>Dashboard</span>
                         </Link>
                       </li>
                       <li>
-                        <Link to="/history" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <HistoryIcon size={18} /> History
+                        <Link to="/history" className={`nav-link ${location.pathname === '/history' ? 'active' : ''}`}>
+                          <HistoryIcon size={18} /> <span>History</span>
                         </Link>
                       </li>
                     </>
                   )}
                 </>
               )}
+            </ul>
 
-              <li style={{ height: '24px', width: '1px', background: 'var(--glass-border)' }}></li>
-
+            <ul className="nav-actions">
               {!user ? (
                 <>
-                  <li><Link to="/auth/select-role">Sign In</Link></li>
+                  <li><Link to="/auth/select-role" className="nav-link">Sign In</Link></li>
                   <li>
                     <Link to="/auth/select-role" className="btn btn-primary" style={{ padding: '8px 20px', fontSize: '0.85rem' }}>
                       Join SREC
@@ -135,50 +134,30 @@ function AppContent() {
                 </>
               ) : (
                 <>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-green)', fontWeight: '700' }}>
-                    <Link to="/dashboard/profile" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'inherit' }}>
-                      <div style={{
-                        width: '30px', height: '30px',
-                        background: 'linear-gradient(135deg, var(--accent-green), var(--accent-olive))',
-                        color: 'white',
-                        borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.75rem', fontWeight: '800'
-                      }}>
+                  <li>
+                    <Link to="/dashboard/profile" className="user-profile-btn">
+                      <div className="avatar">
                         {user?.email?.charAt(0)?.toUpperCase() || 'U'}
                       </div>
-                      <span style={{ fontSize: '0.9rem' }}>{user?.email?.split('@')[0] || 'User'}</span>
+                      <span>{user?.email?.split('@')[0] || 'User'}</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="/dashboard/inbox" style={{ padding: '8px', color: 'var(--text-main)', display: 'flex', alignItems: 'center' }} title="Inbox">
+                    <Link to="/dashboard/inbox" className="icon-btn" title="Inbox">
                       <InboxIcon size={20} />
                     </Link>
                   </li>
+                  <div className="nav-divider"></div>
                   <li>
-                    <button onClick={logout} style={{
-                      background: 'none', border: 'none',
-                      color: '#ef4444', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: '6px',
-                      fontWeight: '600', fontSize: '0.9rem', fontFamily: 'inherit'
-                    }}>
-                      <LogOut size={16} /> Logout
+                    <button onClick={logout} className="icon-btn logout-btn" title="Logout">
+                      <LogOut size={18} />
                     </button>
                   </li>
                 </>
               )}
 
               <li>
-                <button
-                  onClick={toggleDarkMode}
-                  style={{
-                    background: 'none', border: 'none',
-                    cursor: 'pointer', color: 'var(--text-main)',
-                    padding: '8px', borderRadius: '50%',
-                    display: 'flex', alignItems: 'center',
-                    transition: '0.3s'
-                  }}
-                >
+                <button onClick={toggleDarkMode} className="icon-btn" title="Toggle Theme">
                   {darkMode ? <Sun size={20} /> : <Moon size={20} />}
                 </button>
               </li>

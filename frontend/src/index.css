@@ -517,39 +517,44 @@ input::placeholder {
    NAVIGATION — Minimal Lucent-style
    ============================================ */
 nav {
-  height: 90px;
+  height: 100px;
   display: flex;
   align-items: center;
   position: fixed;
   top: 0;
   width: 100%;
   z-index: 1000;
-  padding: 0 2rem;
+  padding: 0 1.5rem;
+  pointer-events: none;
+  /* Allow clicks to pass through except for the container */
 }
 
 .nav-container {
+  pointer-events: auto;
   width: 100%;
-  max-width: 1400px;
+  max-width: 1300px;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.8rem 2rem;
-  background: rgba(8, 10, 6, 0.55);
-  backdrop-filter: blur(30px) saturate(140%);
-  -webkit-backdrop-filter: blur(30px) saturate(140%);
-  border: 1px solid rgba(139, 154, 70, 0.1);
+  padding: 0.6rem 1.2rem 0.6rem 2rem;
+  background: rgba(8, 10, 6, 0.65);
+  backdrop-filter: blur(40px) saturate(160%);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  border: 1px solid rgba(139, 154, 70, 0.15);
   border-radius: 100px;
   margin-top: 1rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
 [data-theme='light'] .nav-container {
-  background: rgba(245, 243, 238, 0.6);
+  background: rgba(245, 243, 238, 0.7);
   border-color: rgba(26, 28, 23, 0.08);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
 }
 
 .logo {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   background: linear-gradient(135deg, var(--accent-green), var(--accent-sage));
   background-clip: text;
   -webkit-background-clip: text;
@@ -559,14 +564,14 @@ nav {
   letter-spacing: -0.03em;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .logo-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   background: linear-gradient(135deg, var(--accent-green), var(--accent-olive));
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -574,25 +579,110 @@ nav {
   flex-shrink: 0;
 }
 
-.nav-links {
+.nav-main {
   display: flex;
   align-items: center;
-  gap: 2.5rem;
+  gap: 1.2rem;
+  list-style: none;
+  background: rgba(139, 154, 70, 0.05);
+  padding: 6px 10px;
+  border-radius: 100px;
+  border: 1px solid rgba(139, 154, 70, 0.05);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   list-style: none;
 }
 
-.nav-links a {
+.nav-link {
   text-decoration: none;
   color: var(--text-light);
   font-weight: 600;
-  font-size: 0.95rem;
-  transition: color 0.3s ease;
-  opacity: 0.85;
+  font-size: 0.88rem;
+  padding: 8px 16px;
+  border-radius: 100px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.nav-links a:hover {
-  opacity: 1;
+.nav-link:hover {
   color: var(--accent-green-light);
+  background: rgba(139, 154, 70, 0.08);
+}
+
+.nav-link.active {
+  background: var(--accent-green);
+  color: white;
+}
+
+.nav-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--glass-border);
+  margin: 0 0.5rem;
+}
+
+.user-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  padding-right: 14px;
+  background: rgba(139, 154, 70, 0.08);
+  border-radius: 100px;
+  border: 1px solid rgba(139, 154, 70, 0.1);
+  text-decoration: none;
+  color: var(--text-main);
+  transition: all 0.3s ease;
+}
+
+.user-profile-btn:hover {
+  background: rgba(139, 154, 70, 0.15);
+  border-color: var(--accent-green);
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--accent-green), var(--accent-olive));
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  padding: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(139, 154, 70, 0.1);
+  color: var(--accent-green-light);
+}
+
+.logout-btn {
+  color: #ef4444 !important;
+}
+
+.logout-btn:hover {
+  background: rgba(239, 68, 68, 0.08) !important;
 }
 
 /* Nav pill button style (like "Explore Platform" in Lucent) */
@@ -883,9 +973,35 @@ main {
 /* ============================================
    RESPONSIVE
    ============================================ */
+@media (max-width: 1100px) {
+  .nav-container {
+    padding: 0.5rem 1rem;
+  }
+
+  .nav-main {
+    gap: 0.5rem;
+  }
+
+  .nav-link span {
+    display: none;
+  }
+
+  .nav-link {
+    padding: 10px;
+  }
+}
+
 @media (max-width: 768px) {
-  .nav-links {
-    gap: 1rem;
+  .nav-main {
+    display: none;
+  }
+
+  .user-profile-btn span {
+    display: none;
+  }
+
+  .user-profile-btn {
+    padding-right: 6px;
   }
 
   .auth-card {
