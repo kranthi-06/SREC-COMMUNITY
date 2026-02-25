@@ -7,9 +7,14 @@ const fs = require('fs');
 dotenv.config();
 
 // Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+const uploadsDir = process.env.VERCEL ? '/tmp/uploads' : path.join(__dirname, 'uploads');
+try {
+    if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+        console.log(`Created uploads directory at: ${uploadsDir}`);
+    }
+} catch (err) {
+    console.warn('Could not create uploads directory (might be read-only):', err.message);
 }
 
 const app = express();
@@ -23,7 +28,11 @@ const eventRoutes = require('./routes/eventRoutes');
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(uploadsDir));
+if (process.env.VERCEL) {
+    // Fallback static for bundled uploads if any
+    app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+}
 
 // Routes
 app.use('/api/reviews', reviewRoutes);
