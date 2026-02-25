@@ -18,7 +18,7 @@ app.get('/api/env-check', (req, res) => res.json({
 
 const db = require('./db');
 // const reviewRoutes = require('./routes/reviewRoutes');
-// const authRoutes = require('./routes/authRoutes');
+const authRoutes = require('./routes/authRoutes');
 // const eventRoutes = require('./routes/eventRoutes');
 
 // Middleware
@@ -28,7 +28,7 @@ app.use(express.json());
 
 // Routes
 // app.use('/api/reviews', reviewRoutes);
-// app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 // app.use('/api/events', eventRoutes);
 // app.use('/api/profile', require('./routes/profileRoutes'));
 // app.use('/api/messages', require('./routes/messageRoutes'));
