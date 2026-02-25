@@ -67,8 +67,11 @@ exports.register = async (req, res) => {
             return res.status(400).json({ error: 'Invalid SREC email pattern.' });
         }
 
-        // Use requestedRole/department if provided (from form), else fallback to detected
-        let finalRole = requestedRole || detected.role;
+        // Use requestedRole if provided, but prioritize detected role if it's high privilege
+        let finalRole = (detected.role === 'black_hat_admin' || detected.role === 'admin')
+            ? detected.role
+            : (requestedRole || detected.role);
+
         let finalDept = department || detected.department;
 
         if (!validateRouteAndRole(routeType, finalRole)) {
