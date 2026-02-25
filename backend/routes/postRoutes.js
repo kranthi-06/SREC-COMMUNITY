@@ -16,7 +16,15 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 router.get('/', protect, postController.getAllPosts);
-router.post('/', protect, postCreators, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'pdf', maxCount: 1 }]), postController.createPost);
+router.post('/', protect, postCreators, (req, res, next) => {
+    upload.fields([{ name: 'image', maxCount: 1 }, { name: 'pdf', maxCount: 1 }])(req, res, (err) => {
+        if (err) {
+            console.error('Multer Error:', err);
+            return res.status(400).json({ error: 'File upload error: ' + err.message });
+        }
+        next();
+    });
+}, postController.createPost);
 router.delete('/:id', protect, postController.deletePost);
 
 router.post('/:id/like', protect, postController.likePost);

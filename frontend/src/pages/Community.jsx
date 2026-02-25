@@ -62,7 +62,9 @@ const Community = () => {
             setIsCreateModalOpen(false);
             fetchPosts();
         } catch (error) {
-            alert('Error creating post ' + (error.response?.data?.error || ''));
+            const errorMsg = error.response?.data?.error || '';
+            const detailMsg = error.response?.data?.message || '';
+            alert('Error creating post: ' + errorMsg + (detailMsg ? ' (' + detailMsg + ')' : ''));
         } finally {
             setPosting(false);
         }
@@ -141,24 +143,30 @@ const Community = () => {
                 padding: '10px 0'
             }}>
                 <h1 className="gradient-text" style={{ fontSize: '2.2rem', fontWeight: '900' }}>CampusPulse Feed</h1>
-                {canCreatePost && (
-                    <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => setIsCreateModalOpen(true)}
-                        style={{
-                            width: '45px', height: '45px', borderRadius: '50%',
-                            background: 'linear-gradient(135deg, var(--accent-green), var(--accent-olive))',
-                            color: 'white', border: 'none', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            boxShadow: '0 4px 15px rgba(139, 154, 70, 0.4)'
-                        }}
-                        title="Create Post"
-                    >
-                        <Plus size={24} />
-                    </motion.button>
-                )}
             </div>
+
+            {/* Floating Create Button - Top Right */}
+            {canCreatePost && (
+                <motion.button
+                    whileHover={{ scale: 1.1, translateY: -2 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setIsCreateModalOpen(true)}
+                    style={{
+                        position: 'fixed',
+                        top: '120px',
+                        right: '40px',
+                        width: '55px', height: '55px', borderRadius: '50%',
+                        background: 'linear-gradient(135deg, var(--accent-green), var(--accent-olive))',
+                        color: 'white', border: 'none', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)',
+                        zIndex: 1000
+                    }}
+                    title="Create Post"
+                >
+                    <Plus size={28} />
+                </motion.button>
+            )}
 
             {/* Main Feed */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
