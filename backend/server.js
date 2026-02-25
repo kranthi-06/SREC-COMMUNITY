@@ -8,14 +8,6 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// EMERGENCY DEBUG ROUTES (Move before DB)
-app.get('/api/ping', (req, res) => res.send('system_alive'));
-app.get('/api/env-check', (req, res) => res.json({
-    has_db_url: !!process.env.DATABASE_URL,
-    node_env: process.env.NODE_ENV,
-    vercel: !!process.env.VERCEL
-}));
-
 const db = require('./db');
 const reviewRoutes = require('./routes/reviewRoutes');
 const authRoutes = require('./routes/authRoutes');
@@ -34,9 +26,6 @@ app.use('/api/profile', require('./routes/profileRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/posts', require('./routes/postRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
-
-// Ping Route
-app.get('/api/ping', (req, res) => res.json({ message: 'pong' }));
 
 // Health Check
 app.get('/api/health', async (req, res) => {
