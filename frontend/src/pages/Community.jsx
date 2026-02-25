@@ -159,7 +159,7 @@ const Community = () => {
                             color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: '1.2rem', fontWeight: '800', flexShrink: 0
                         }}>
-                            {user.email.charAt(0).toUpperCase()}
+                            {user?.email?.charAt(0)?.toUpperCase()}
                         </div>
                         <div style={{ flex: 1 }}>
                             <textarea

@@ -145,9 +145,9 @@ function AppContent() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '0.75rem', fontWeight: '800'
                       }}>
-                        {user.email.charAt(0).toUpperCase()}
+                        {user?.email?.charAt(0)?.toUpperCase() || 'U'}
                       </div>
-                      <span style={{ fontSize: '0.9rem' }}>{user.email.split('@')[0]}</span>
+                      <span style={{ fontSize: '0.9rem' }}>{user?.email?.split('@')[0] || 'User'}</span>
                     </Link>
                   </li>
                   <li>
