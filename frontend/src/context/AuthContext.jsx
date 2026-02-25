@@ -4,31 +4,40 @@ import axios from 'axios';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
+    const [user, setUser] = useState(() => {
         const storedUser = localStorage.getItem('user');
         const token = localStorage.getItem('token');
         if (storedUser && token) {
-            setUser(JSON.parse(storedUser));
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            return JSON.parse(storedUser);
         }
-        setLoading(false);
-    }, []);
+        return null;
+    });
+    const [loading, setLoading] = useState(false);
 
-    const login = async (email, password) => {
-        const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, { email, password });
+    const login = async (routeType, email, password) => {
+        const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/${routeType}/login`, { email, password });
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
         setUser(res.data.user);
         axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
     };
 
-    const register = async (email, password, role) => {
-        await axios.post(`${import.meta.env.VITE_API_URL}/auth/register`, { email, password, role });
+    const register = async (routeType, fullName, email, password, confirmPassword) => {
+        const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/${routeType}/register`, { fullName, email, password, confirmPassword });
+        return res.data;
     };
 
+    const verifyOTP = async (routeType, email, otp) => {
+        const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/${routeType}/verify-otp`, { email, otp });
+        if (res.data.token && res.data.user) {
+            localStorage.setItem('token', res.data.token);
+            localStorage.setItem('user', JSON.stringify(res.data.user));
+            setUser(res.data.user);
+            axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+        }
+        return res.data;
+    };
     const logout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -37,7 +46,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, register, verifyOTP, logout, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );

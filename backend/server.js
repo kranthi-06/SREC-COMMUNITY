@@ -1,9 +1,11 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
+const db = require('./db');
 const reviewRoutes = require('./routes/reviewRoutes');
 const authRoutes = require('./routes/authRoutes');
+const eventRoutes = require('./routes/eventRoutes');
 
 dotenv.config();
 
@@ -13,27 +15,51 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/profile', require('./routes/profileRoutes'));
+app.use('/api/messages', require('./routes/messageRoutes'));
+app.use('/api/posts', require('./routes/postRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Health Check
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-    });
+app.get('/api/health', async (req, res) => {
+    try {
+        await db.query('SELECT 1');
+        res.json({
+            status: 'ok',
+            db: 'connected (PostgreSQL)'
+        });
+    } catch (err) {
+        res.status(500).json({
+            status: 'error',
+            db: 'disconnected',
+            error: err.message
+        });
+    }
 });
 
-// MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/college-sentiment';
+// Test Database Connection and Start Server
+const startServer = async () => {
+    try {
+        await db.query('SELECT NOW()');
+        console.log('Connected to Supabase PostgreSQL');
 
-mongoose.connect(MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('MongoDB connection error:', err));
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    } catch (err) {
+        console.error('Failed to connect to PostgreSQL:', err);
+    }
+};
 
-// Start Server
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// Start server if not running in Vercel
+if (!process.env.VERCEL) {
+    startServer();
+}
+
+module.exports = app;

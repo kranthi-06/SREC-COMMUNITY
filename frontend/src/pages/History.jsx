@@ -93,7 +93,7 @@ const History = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '2rem' }}>
                     {batches.map((batch, index) => (
                         <motion.div
-                            key={batch._id}
+                            key={batch.id}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
@@ -114,8 +114,8 @@ const History = () => {
                                         <span>{formatDate(batch.timestamp)}</span>
                                     </div>
                                     <h3 style={{ color: 'var(--text-main)', fontSize: '1.25rem' }}>
-                                        {batch._id === 'legacy_data' ? 'Initial Data / Manual Entries' :
-                                            batch._id.startsWith('batch_') ? 'Bulk Import Session' : 'Manual Entry Batch'}
+                                        {batch.id === 'legacy_data' ? 'Initial Data / Manual Entries' :
+                                            batch.id.startsWith('batch_') ? 'Bulk Import Session' : 'Manual Entry Batch'}
                                     </h3>
                                 </div>
                                 <div style={{
@@ -134,7 +134,7 @@ const History = () => {
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            handleDelete(batch._id);
+                                            handleDelete(batch.id);
                                         }}
                                         style={{
                                             background: 'none',
@@ -183,7 +183,7 @@ const History = () => {
                             </div>
 
                             <button
-                                onClick={() => navigate(`/dashboard?batchId=${batch._id}`)}
+                                onClick={() => navigate(`/dashboard?batchId=${batch.id}`)}
                                 style={{
                                     width: '100%',
                                     padding: '12px',

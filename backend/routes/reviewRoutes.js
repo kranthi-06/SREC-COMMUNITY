@@ -2,13 +2,15 @@ const express = require('express');
 const router = express.Router();
 const reviewController = require('../controllers/reviewController');
 
-const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { protect, adminOnly, studentOnly } = require('../middleware/authMiddleware');
 
-router.post('/submit', protect, reviewController.submitReview);
-router.get('/', protect, adminOnly, reviewController.getReviews);
-router.get('/analytics', protect, adminOnly, reviewController.getAnalytics);
-router.get('/batches', protect, adminOnly, reviewController.getBatches);
-router.delete('/batch/:batchId', protect, adminOnly, reviewController.deleteBatch);
-router.post('/bulk-submit', protect, adminOnly, reviewController.bulkSubmitReviews);
+// === ADMIN ROUTES ===
+router.post('/admin/create', protect, adminOnly, reviewController.createReviewRequest);
+router.get('/admin/requests', protect, adminOnly, reviewController.getAdminReviewRequests);
+router.get('/admin/analytics/:requestId', protect, adminOnly, reviewController.getReviewAnalytics);
+
+// === STUDENT ROUTES ===
+router.get('/student/inbox', protect, studentOnly, reviewController.getStudentInboxReviews);
+router.post('/student/submit/:requestId', protect, studentOnly, reviewController.submitReviewResponse);
 
 module.exports = router;

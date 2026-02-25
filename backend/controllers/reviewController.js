@@ -1,205 +1,171 @@
-const Review = require('../models/Review');
-const Sentiment = require('sentiment');
-const sentiment = new Sentiment();
+const db = require('../db');
 
-exports.submitReview = async (req, res) => {
+exports.createReviewRequest = async (req, res) => {
     try {
-        const { studentName, eventName, eventType, rating, description } = req.body;
+        const { title, questions, filters } = req.body;
+        const adminId = req.user.userId;
 
-        const result = sentiment.analyze(description);
-        let sentimentLabel = 'Neutral';
-        if (result.score > 0) sentimentLabel = 'Positive';
-        else if (result.score < 0) sentimentLabel = 'Negative';
+        if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).json({ error: 'Title and at least one question are mandatory.' });
+        }
 
-        const newReview = new Review({
-            studentName,
-            eventName,
-            eventType,
-            rating,
-            description,
-            sentiment: sentimentLabel,
-            score: result.score
+        // Generate query to find right students
+        let queryStr = 'SELECT id FROM users WHERE role = $1';
+        let vals = ['student'];
+        let count = 2;
+
+        if (filters.department) {
+            queryStr += ` AND department = $${count}`;
+            vals.push(filters.department.toLowerCase());
+            count++;
+        }
+        if (filters.year) {
+            queryStr += ` AND left(split_part(email, '@', 1), 2) = $${count}`;
+            vals.push(filters.year);
+            count++;
+        }
+
+        const students = await db.query(queryStr, vals);
+
+        if (students.rows.length === 0) {
+            return res.status(400).json({ error: 'No students found matching these filters.' });
+        }
+
+        const insertReq = await db.query(`
+            INSERT INTO review_requests (admin_id, title, questions, filters)
+            VALUES ($1, $2, $3, $4) RETURNING id
+        `, [adminId, title, JSON.stringify(questions), JSON.stringify(filters)]);
+        const requestId = insertReq.rows[0].id;
+
+        // Insert into recipients
+        for (const student of students.rows) {
+            await db.query(`
+                INSERT INTO review_request_recipients (request_id, student_id)
+                VALUES ($1, $2)
+            `, [requestId, student.id]);
+        }
+
+        res.status(201).json({ message: `Successfully sent review form to ${students.rows.length} students` });
+    } catch (error) {
+        console.error('Error creating review form:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+exports.getAdminReviewRequests = async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT rr.*, u.full_name as creator_name,
+               (SELECT COUNT(*) FROM review_request_recipients rrr WHERE rrr.request_id = rr.id) as total_sent,
+               (SELECT COUNT(*) FROM review_responses res WHERE res.request_id = rr.id) as total_responses
+            FROM review_requests rr
+            JOIN users u ON rr.admin_id = u.id
+            ORDER BY rr.created_at DESC
+        `);
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+exports.getReviewAnalytics = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+
+        const requestCheck = await db.query('SELECT * FROM review_requests WHERE id = $1', [requestId]);
+        if (requestCheck.rows.length === 0) return res.status(404).json({ error: 'Review request not found' });
+        const requestData = requestCheck.rows[0];
+
+        const responses = await db.query(`
+            SELECT answers, department, year_string, created_at
+            FROM review_responses
+            WHERE request_id = $1
+        `, [requestId]);
+
+        // Aggregate analytics per question: 
+        const distributions = {};
+
+        // Initialize distribution mappings based on questions array
+        requestData.questions.forEach(q => {
+            distributions[q.id] = {};
         });
 
-        await newReview.save();
-        res.status(201).json({ message: 'Review submitted successfully', review: newReview });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-exports.getReviews = async (req, res) => {
-    try {
-        const { batchId } = req.query;
-        let query = {};
-
-        if (batchId === 'latest') {
-            const latestReview = await Review.findOne().sort({ timestamp: -1 });
-            if (latestReview) query.batchId = latestReview.batchId;
-        } else if (batchId === 'legacy_data') {
-            query.batchId = { $in: [null, 'legacy_data', 'manual'] };
-        } else if (batchId && batchId !== 'all') {
-            query.batchId = batchId;
-        }
-
-        const reviews = await Review.find(query).sort({ timestamp: -1 });
-        res.status(200).json(reviews);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-exports.deleteReview = async (req, res) => {
-    try {
-        await Review.findByIdAndDelete(req.params.id);
-        res.status(200).json({ message: 'Review deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-exports.getAnalytics = async (req, res) => {
-    try {
-        const { batchId } = req.query;
-        let query = {};
-
-        if (batchId === 'latest') {
-            const latestReview = await Review.findOne().sort({ timestamp: -1 });
-            if (latestReview) query.batchId = latestReview.batchId;
-        } else if (batchId === 'legacy_data') {
-            query.batchId = { $in: [null, 'legacy_data', 'manual'] };
-        } else if (batchId && batchId !== 'all') {
-            query.batchId = batchId;
-        }
-
-        const reviews = await Review.find(query);
-        const total = reviews.length;
-
-        if (total === 0) {
-            return res.status(200).json({
-                total: 0,
-                positive: 0,
-                negative: 0,
-                neutral: 0,
-                sentimentDistribution: [],
-                eventWiseSentiment: []
-            });
-        }
-
-        const counts = reviews.reduce((acc, r) => {
-            acc[r.sentiment]++;
-            return acc;
-        }, { Positive: 0, Negative: 0, Neutral: 0 });
-
-        const sentimentDistribution = [
-            { name: 'Positive', value: counts.Positive },
-            { name: 'Negative', value: counts.Negative },
-            { name: 'Neutral', value: counts.Neutral }
-        ];
-
-        // Event-wise sentiment
-        const eventMap = reviews.reduce((acc, r) => {
-            if (!acc[r.eventName]) {
-                acc[r.eventName] = { name: r.eventName, Positive: 0, Negative: 0, Neutral: 0 };
+        responses.rows.forEach(r => {
+            const answers = r.answers || {};
+            for (const [qId, ans] of Object.entries(answers)) {
+                if (!distributions[qId]) distributions[qId] = {};
+                distributions[qId][ans] = (distributions[qId][ans] || 0) + 1;
             }
-            acc[r.eventName][r.sentiment]++;
-            return acc;
-        }, {});
+        });
 
-        const eventWiseSentiment = Object.values(eventMap);
-
-        res.status(200).json({
-            total,
-            positive: ((counts.Positive / total) * 100).toFixed(1),
-            negative: ((counts.Negative / total) * 100).toFixed(1),
-            neutral: ((counts.Neutral / total) * 100).toFixed(1),
-            sentimentDistribution,
-            eventWiseSentiment
+        res.json({
+            request: requestData,
+            total_responses: responses.rows.length,
+            distributions,
+            raw_responses: responses.rows
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error computing analytics:', error);
+        res.status(500).json({ error: 'Internal Server Error Computing Analytics' });
     }
 };
-exports.bulkSubmitReviews = async (req, res) => {
+
+exports.getStudentInboxReviews = async (req, res) => {
     try {
-        const { reviews } = req.body;
-        if (!Array.isArray(reviews)) {
-            return res.status(400).json({ error: 'Payload must be an array of reviews' });
+        const studentId = req.user.userId;
+        const result = await db.query(`
+            SELECT rr.*, rrr.is_answered
+            FROM review_requests rr
+            JOIN review_request_recipients rrr ON rr.id = rrr.request_id
+            WHERE rrr.student_id = $1
+            ORDER BY rr.created_at DESC
+        `, [studentId]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error tracking inbox requests:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+exports.submitReviewResponse = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const { answers } = req.body;
+        const studentId = req.user.userId;
+
+        if (!answers || Object.keys(answers).length === 0) {
+            return res.status(400).json({ error: 'Answers must be provided.' });
         }
 
-        const batchId = `batch_${Date.now()}`;
+        const recipientCheck = await db.query(`SELECT is_answered FROM review_request_recipients WHERE request_id = $1 AND student_id = $2`, [requestId, studentId]);
 
-        const processedReviews = reviews.map(r => {
-            const result = sentiment.analyze(r.description || '');
-            let sentimentLabel = 'Neutral';
-            if (result.score > 0) sentimentLabel = 'Positive';
-            else if (result.score < 0) sentimentLabel = 'Negative';
-
-            return {
-                studentName: r.studentName || 'Anonymous',
-                eventName: r.eventName || 'External Feedback',
-                eventType: r.eventType || 'Uncategorized',
-                rating: r.rating || 3,
-                description: r.description,
-                sentiment: sentimentLabel,
-                score: result.score,
-                timestamp: new Date(),
-                batchId: batchId
-            };
-        });
-
-        const savedReviews = await Review.insertMany(processedReviews);
-        res.status(201).json({ message: `${savedReviews.length} reviews processed and saved`, count: savedReviews.length });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-exports.getBatches = async (req, res) => {
-    try {
-        const batches = await Review.aggregate([
-            {
-                $project: {
-                    batchId: { $ifNull: ["$batchId", "legacy_data"] },
-                    sentiment: 1,
-                    timestamp: 1
-                }
-            },
-            {
-                $group: {
-                    _id: "$batchId",
-                    timestamp: { $min: "$timestamp" },
-                    total: { $sum: 1 },
-                    positive: { $sum: { $cond: [{ $eq: ["$sentiment", "Positive"] }, 1, 0] } },
-                    negative: { $sum: { $cond: [{ $eq: ["$sentiment", "Negative"] }, 1, 0] } },
-                    neutral: { $sum: { $cond: [{ $eq: ["$sentiment", "Neutral"] }, 1, 0] } }
-                }
-            },
-            { $sort: { timestamp: -1 } }
-        ]);
-        res.status(200).json(batches);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-exports.deleteBatch = async (req, res) => {
-    try {
-        const { batchId } = req.params;
-        let query = {};
-
-        if (batchId === 'legacy_data') {
-            query.batchId = { $in: [null, 'legacy_data', 'manual'] };
-        } else {
-            query.batchId = batchId;
+        if (recipientCheck.rows.length === 0) {
+            return res.status(403).json({ error: 'You do not have access to this private review request.' });
         }
 
-        const result = await Review.deleteMany(query);
-        res.status(200).json({
-            message: `Successfully deleted ${result.deletedCount} reviews from session ${batchId}`,
-            count: result.deletedCount
-        });
+        if (recipientCheck.rows[0].is_answered) {
+            return res.status(400).json({ error: 'You have already submitted a response for this form.' });
+        }
+
+        // Get student department/year for analytics metadata mapping securely:
+        const studentQuery = await db.query(`SELECT department, email FROM users WHERE id = $1`, [studentId]);
+        const dept = studentQuery.rows[0].department;
+        const yearStr = studentQuery.rows[0].email.split('@')[0].substring(0, 2); // Extracts year prefix
+
+        // Add response
+        await db.query(`
+            INSERT INTO review_responses (request_id, student_id, department, year_string, answers)
+            VALUES ($1, $2, $3, $4, $5)
+        `, [requestId, studentId, dept, yearStr, JSON.stringify(answers)]);
+
+        // Mark recipient row as answered
+        await db.query(`
+            UPDATE review_request_recipients SET is_answered = true WHERE request_id = $1 AND student_id = $2
+        `, [requestId, studentId]);
+
+        res.status(201).json({ message: 'Review successfully recorded.' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Submission error:', error);
+        res.status(500).json({ error: 'Internal Server Error Submitting Feedback' });
     }
 };
