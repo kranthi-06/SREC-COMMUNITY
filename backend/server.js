@@ -16,7 +16,7 @@ app.get('/api/env-check', (req, res) => res.json({
     vercel: !!process.env.VERCEL
 }));
 
-// const db = require('./db');
+const db = require('./db');
 // const reviewRoutes = require('./routes/reviewRoutes');
 // const authRoutes = require('./routes/authRoutes');
 // const eventRoutes = require('./routes/eventRoutes');
