@@ -30,10 +30,10 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
-// app.use('/api/profile', require('./routes/profileRoutes'));
-// app.use('/api/messages', require('./routes/messageRoutes'));
-// app.use('/api/posts', require('./routes/postRoutes'));
-// app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/profile', require('./routes/profileRoutes'));
+app.use('/api/messages', require('./routes/messageRoutes'));
+app.use('/api/posts', require('./routes/postRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Ping Route
 app.get('/api/ping', (req, res) => res.json({ message: 'pong' }));
