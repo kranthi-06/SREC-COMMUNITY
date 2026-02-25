@@ -33,7 +33,8 @@ app.get('/api/health', async (req, res) => {
         await db.query('SELECT 1');
         res.json({
             status: 'ok',
-            db: 'connected (PostgreSQL)'
+            db: 'connected (PostgreSQL)',
+            version: '1.2.0'
         });
     } catch (err) {
         res.status(500).json({
