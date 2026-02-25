@@ -47,14 +47,14 @@ const validateRouteAndRole = (routeType, detectedRole) => {
 exports.register = async (req, res) => {
     try {
         const { routeType } = req.params;
-        const { fullName, email, password, confirmPassword } = req.body;
+        const { fullName, email, password, confirmPassword, department, batchYear, phoneNumber, role: requestedRole } = req.body;
 
         if (!['student', 'faculty'].includes(routeType)) {
             return res.status(400).json({ error: 'Invalid route type.' });
         }
 
-        if (!fullName || !email || !password || !confirmPassword) {
-            return res.status(400).json({ error: 'All fields are required.' });
+        if (!fullName || !email || !password || !confirmPassword || !department) {
+            return res.status(400).json({ error: 'All required fields are required.' });
         }
         if (password !== confirmPassword) {
             return res.status(400).json({ error: 'Passwords do not match.' });
@@ -67,10 +67,12 @@ exports.register = async (req, res) => {
             return res.status(400).json({ error: 'Invalid SREC email pattern.' });
         }
 
-        const { role, department } = detected;
+        // Use requestedRole/department if provided (from form), else fallback to detected
+        let finalRole = requestedRole || detected.role;
+        let finalDept = department || detected.department;
 
-        if (!validateRouteAndRole(routeType, role)) {
-            return res.status(403).json({ error: `Cannot register as ${routeType} with a ${role} email.` });
+        if (!validateRouteAndRole(routeType, finalRole)) {
+            return res.status(403).json({ error: `Cannot register as ${routeType} with a ${finalRole} email.` });
         }
 
         // Check if user exists
@@ -87,9 +89,9 @@ exports.register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         await db.query(`
-            INSERT INTO users (full_name, email, password, role, department, is_verified) 
-            VALUES ($1, $2, $3, $4, $5, FALSE)
-        `, [fullName, normalizedEmail, hashedPassword, role, department]);
+            INSERT INTO users (full_name, email, password, role, department, batch_year, phone_number, is_verified) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE)
+        `, [fullName, normalizedEmail, hashedPassword, finalRole, finalDept, batchYear, phoneNumber]);
 
         // Generate 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();

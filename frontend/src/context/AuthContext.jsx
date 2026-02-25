@@ -23,8 +23,8 @@ export const AuthProvider = ({ children }) => {
         axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
     };
 
-    const register = async (routeType, fullName, email, password, confirmPassword) => {
-        const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/${routeType}/register`, { fullName, email, password, confirmPassword });
+    const register = async (routeType, data) => {
+        const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/${routeType}/register`, data);
         return res.data;
     };
 

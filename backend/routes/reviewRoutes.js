@@ -6,6 +6,7 @@ const { protect, adminOnly, studentOnly } = require('../middleware/authMiddlewar
 
 // === ADMIN ROUTES ===
 router.post('/admin/create', protect, adminOnly, reviewController.createReviewRequest);
+router.post('/admin/send-quick', protect, adminOnly, reviewController.sendQuickReview);
 router.get('/admin/requests', protect, adminOnly, reviewController.getAdminReviewRequests);
 router.get('/admin/analytics/:requestId', protect, adminOnly, reviewController.getReviewAnalytics);
 

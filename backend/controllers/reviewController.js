@@ -1,5 +1,43 @@
 const db = require('../db');
 
+exports.sendQuickReview = async (req, res) => {
+    try {
+        const { title, user_ids } = req.body;
+        const adminId = req.user.userId;
+
+        if (!title || !user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
+            return res.status(400).json({ error: 'Title and user IDs are required.' });
+        }
+
+        const questions = [
+            {
+                id: 'quick_review_1',
+                text: 'How would you rate your recent performance/experience?',
+                type: 'OPTION_BASED',
+                options: ['Good', 'Average', 'Needs Improvement']
+            }
+        ];
+
+        const insertReq = await db.query(`
+            INSERT INTO review_requests (admin_id, title, questions, filters)
+            VALUES ($1, $2, $3, $4) RETURNING id
+        `, [adminId, title, JSON.stringify(questions), JSON.stringify({})]);
+        const requestId = insertReq.rows[0].id;
+
+        for (const userId of user_ids) {
+            await db.query(`
+                INSERT INTO review_request_recipients (request_id, student_id)
+                VALUES ($1, $2)
+            `, [requestId, userId]);
+        }
+
+        res.status(201).json({ message: `Successfully sent quick review request to ${user_ids.length} users` });
+    } catch (error) {
+        console.error('Error creating quick review:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
 exports.createReviewRequest = async (req, res) => {
     try {
         const { title, questions, filters } = req.body;
@@ -16,11 +54,11 @@ exports.createReviewRequest = async (req, res) => {
 
         if (filters.department) {
             queryStr += ` AND department = $${count}`;
-            vals.push(filters.department.toLowerCase());
+            vals.push(filters.department); // Removed .toLowerCase() as departments are mixed case now
             count++;
         }
         if (filters.year) {
-            queryStr += ` AND left(split_part(email, '@', 1), 2) = $${count}`;
+            queryStr += ` AND batch_year = $${count}`; // Using batch_year column
             vals.push(filters.year);
             count++;
         }

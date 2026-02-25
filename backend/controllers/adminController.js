@@ -3,7 +3,7 @@ const db = require('../db');
 exports.getAllUsers = async (req, res) => {
     try {
         const { role, department, year } = req.query;
-        let query = 'SELECT id, full_name, email, role, department, is_verified, created_at FROM users WHERE role != \'black_hat_admin\'';
+        let query = 'SELECT id, full_name, email, role, department, batch_year, phone_number, is_verified, created_at FROM users WHERE role != \'black_hat_admin\'';
         let values = [];
         let count = 1;
 

@@ -27,7 +27,25 @@ const Register = ({ routeType }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [department, setDepartment] = useState('');
+    const [batchYear, setBatchYear] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [selectedRole, setSelectedRole] = useState(isStudent ? 'student' : 'faculty');
     const [otp, setOtp] = useState('');
+
+    const departments = [
+        "Computer Science & Engineering (CSE)",
+        "Computer Science & Data Science (CSE-DS)",
+        "Computer Science & Artificial Intelligence (CSE-AIML)",
+        "Computer Science & Design (CSE-DESIGN)",
+        "Department of Basic Science (BS)",
+        "Electronics & Communication (ECE)",
+        "Electrical & Electronics (EEE)",
+        "Mechanical Engineering (MECH)",
+        "Civil Engineering (CIVIL)",
+        "Information Technology (IT)",
+        "Administration"
+    ];
 
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -45,13 +63,17 @@ const Register = ({ routeType }) => {
         setError('');
         setSuccess('');
 
-        if (!fullName.trim() || !email.trim() || !password || !confirmPassword) {
-            setError('Please fill out all fields.');
+        if (!fullName.trim() || !email.trim() || !password || !confirmPassword || !department) {
+            setError('Please fill out all required fields.');
+            return;
+        }
+
+        if (isStudent && !batchYear) {
+            setError('Please provide your batch year.');
             return;
         }
 
         const normalizedEmail = email.toLowerCase().trim();
-
         if (isStudent) {
             const studentPattern = /^[a-z0-9]+@srecnandyal\.edu\.in$/;
             if (!studentPattern.test(normalizedEmail)) {
@@ -88,7 +110,16 @@ const Register = ({ routeType }) => {
 
         setIsLoading(true);
         try {
-            await register(routeType, fullName.trim(), normalizedEmail, password, confirmPassword);
+            await register(routeType, {
+                fullName: fullName.trim(),
+                email: normalizedEmail,
+                password,
+                confirmPassword,
+                department,
+                batchYear,
+                phoneNumber,
+                role: selectedRole
+            });
             setSuccess('OTP dispatched to your official email. Please verify.');
             setTimeout(() => {
                 setSuccess('');
@@ -268,6 +299,75 @@ const Register = ({ routeType }) => {
                                         style={{ paddingLeft: '3.2rem' }}
                                     />
                                     <Mail size={18} className="input-icon" />
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Department</label>
+                                <div className="form-input-wrapper">
+                                    <select
+                                        required
+                                        value={department}
+                                        onChange={(e) => setDepartment(e.target.value)}
+                                        style={{ paddingLeft: '3.2rem' }}
+                                    >
+                                        <option value="">Select Department</option>
+                                        {departments.map((dept, idx) => (
+                                            <option key={idx} value={dept}>{dept}</option>
+                                        ))}
+                                    </select>
+                                    <Shield size={18} className="input-icon" />
+                                </div>
+                            </div>
+
+                            {isStudent && (
+                                <div className="form-group">
+                                    <label className="form-label">Batch Year</label>
+                                    <div className="form-input-wrapper">
+                                        <input
+                                            type="number"
+                                            required={isStudent}
+                                            value={batchYear}
+                                            onChange={(e) => setBatchYear(e.target.value)}
+                                            placeholder="2024"
+                                            min="2020"
+                                            max="2030"
+                                            style={{ paddingLeft: '3.2rem' }}
+                                        />
+                                        <GraduationCap size={18} className="input-icon" />
+                                    </div>
+                                </div>
+                            )}
+
+                            {!isStudent && (
+                                <div className="form-group">
+                                    <label className="form-label">Role</label>
+                                    <div className="form-input-wrapper">
+                                        <select
+                                            required
+                                            value={selectedRole}
+                                            onChange={(e) => setSelectedRole(e.target.value)}
+                                            style={{ paddingLeft: '3.2rem' }}
+                                        >
+                                            <option value="faculty">Faculty</option>
+                                            <option value="teacher">Teacher</option>
+                                        </select>
+                                        <User size={18} className="input-icon" />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="form-group">
+                                <label className="form-label">Phone Number (Optional)</label>
+                                <div className="form-input-wrapper">
+                                    <input
+                                        type="tel"
+                                        value={phoneNumber}
+                                        onChange={(e) => setPhoneNumber(e.target.value)}
+                                        placeholder="+91 XXXXXXXXXX"
+                                        style={{ paddingLeft: '3.2rem' }}
+                                    />
+                                    <User size={18} className="input-icon" />
                                 </div>
                             </div>
 

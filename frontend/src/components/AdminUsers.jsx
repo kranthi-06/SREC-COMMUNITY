@@ -1,28 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { Users, Filter, Shield, AlertCircle, Search, ShieldCheck, Mail, BookOpen } from 'lucide-react';
+import { Users, Filter, Shield, AlertCircle, Search, ShieldCheck, Mail, BookOpen, Plus, X, MessageSquare, Send, Paperclip, MoreVertical, FileText, CheckCircle } from 'lucide-react';
 
 const AdminUsers = () => {
     const { user } = useAuth();
-    const [usersList, setUsersList] = useState([]);
+    const [allUsers, setAllUsers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filters, setFilters] = useState({ role: '', department: '', year: '', search: '' });
-    const [updatingRole, setUpdatingRole] = useState(null);
     const [status, setStatus] = useState({ type: '', text: '' });
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const fetchUsers = async () => {
+    // Filter Groups State
+    const [filterGroups, setFilterGroups] = useState([
+        { id: 1, role: '', department: '', year: '' }
+    ]);
+
+    // Modal States
+    const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [targetUserIds, setTargetUserIds] = useState([]); // Array of IDs to send to
+
+    // Message State
+    const [messageText, setMessageText] = useState('');
+    const [messageFile, setMessageFile] = useState(null);
+    const [sending, setSending] = useState(false);
+
+    const fetchAllUsers = async () => {
         setLoading(true);
         try {
-            // Build query params
-            const params = new URLSearchParams();
-            if (filters.role) params.append('role', filters.role);
-            if (filters.department) params.append('department', filters.department);
-            if (filters.year) params.append('year', filters.year);
-
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/users?${params.toString()}`);
-            setUsersList(res.data);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/users`);
+            setAllUsers(res.data);
         } catch (error) {
             console.error('Failed to fetch users');
             setStatus({ type: 'error', text: 'Failed to load user list.' });
@@ -32,215 +40,374 @@ const AdminUsers = () => {
     };
 
     useEffect(() => {
-        fetchUsers();
-    }, [filters.role, filters.department, filters.year]); // Refetch when strict filters change
+        fetchAllUsers();
+    }, []);
 
-    const handleRoleUpdate = async (targetUserId, newRole) => {
-        if (!window.confirm(`Are you sure you want to change this user's role to ${newRole.toUpperCase()}?`)) return;
+    const addFilterGroup = () => {
+        setFilterGroups([...filterGroups, { id: Date.now(), role: '', department: '', year: '' }]);
+    };
 
-        setUpdatingRole(targetUserId);
-        setStatus({ type: '', text: '' });
+    const removeFilterGroup = (id) => {
+        if (filterGroups.length === 1) {
+            setFilterGroups([{ id: Date.now(), role: '', department: '', year: '' }]);
+            return;
+        }
+        setFilterGroups(filterGroups.filter(g => g.id !== id));
+    };
+
+    const updateFilterGroup = (id, field, value) => {
+        setFilterGroups(filterGroups.map(g => g.id === id ? { ...g, [field]: value } : g));
+    };
+
+    // Filter Logic
+    const filteredUsers = useMemo(() => {
+        return allUsers.filter(u => {
+            // Check if user matches any of the filter groups
+            const matchesGroups = filterGroups.some(group => {
+                const roleMatch = !group.role || u.role === group.role;
+                const deptMatch = !group.department || u.department === group.department;
+                const yearMatch = !group.year || u.batch_year === group.year;
+
+                // If any filter in the group is set, it must match. 
+                // If no filters are set in a group, it matches everyone (we don't want this usually, 
+                // but let's say an empty group matches nothing unless it's the only group)
+                const isGroupEmpty = !group.role && !group.department && !group.year;
+                if (isGroupEmpty) return filterGroups.length === 1; // Show all if only one empty group
+
+                return roleMatch && deptMatch && yearMatch;
+            });
+
+            // Search Filter
+            const matchesSearch = !searchQuery ||
+                u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                u.email.toLowerCase().includes(searchQuery.toLowerCase());
+
+            return matchesGroups && matchesSearch;
+        });
+    }, [allUsers, filterGroups, searchQuery]);
+
+    const handleSendMessage = async (e) => {
+        if (e) e.preventDefault();
+        setSending(true);
+        const formData = new FormData();
+        formData.append('message_text', messageText);
+        formData.append('receiver_ids', JSON.stringify(targetUserIds));
+        if (messageFile) formData.append('attachment', messageFile);
 
         try {
-            const res = await axios.put(`${import.meta.env.VITE_API_URL}/admin/role`, {
-                targetUserId,
-                newRole
+            await axios.post(`${import.meta.env.VITE_API_URL}/messages/send`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
-            setStatus({ type: 'success', text: res.data.message });
-            fetchUsers();
+            setStatus({ type: 'success', text: `Message dispatched to ${targetUserIds.length} users.` });
+            setIsMessageModalOpen(false);
+            setMessageText('');
+            setMessageFile(null);
         } catch (error) {
-            setStatus({ type: 'error', text: error.response?.data?.error || 'Failed to update role.' });
+            setStatus({ type: 'error', text: 'Failed to transmit message.' });
         } finally {
-            setUpdatingRole(null);
+            setSending(false);
         }
     };
 
-    // Derived search filtering locally to avoid excessive API spam on keystrokes
-    const displayedUsers = usersList.filter(u =>
-    (u.full_name?.toLowerCase().includes(filters.search.toLowerCase()) ||
-        u.email.toLowerCase().includes(filters.search.toLowerCase()))
-    );
+    const handleSendQuickReview = async (title) => {
+        setSending(true);
+        try {
+            await axios.post(`${import.meta.env.VITE_API_URL}/reviews/admin/send-quick`, {
+                title,
+                user_ids: targetUserIds
+            });
+            setStatus({ type: 'success', text: `Review request "${title}" sent to ${targetUserIds.length} users.` });
+            setIsReviewModalOpen(false);
+        } catch (error) {
+            setStatus({ type: 'error', text: 'Transmission failure for review request.' });
+        } finally {
+            setSending(false);
+        }
+    };
 
-    const isBlackHat = user?.role === 'black_hat_admin';
+    const openActionModal = (type, users) => {
+        const ids = users.map(u => u.id);
+        setTargetUserIds(ids);
+        if (type === 'message') setIsMessageModalOpen(true);
+        if (type === 'review') setIsReviewModalOpen(true);
+    };
 
     return (
-        <div className="glass-card" style={{ padding: '2.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-                <div>
-                    <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Users size={24} color="var(--primary)" />
-                        User Management System
-                    </h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '5px' }}>
-                        Monitor and manage campus accounts.
-                        {isBlackHat ? ' You have Super Admin access to modify roles.' : ' Role modification is restricted to Super Admins.'}
-                    </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* Header Area */}
+            <div className="glass-card" style={{ padding: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+                    <div>
+                        <h2 style={{ margin: 0, fontSize: '2rem', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <Users size={32} color="var(--primary)" /> User Ecosystem
+                        </h2>
+                        <p style={{ color: 'var(--text-muted)', marginTop: '5px' }}>Direct administrative access to campus identifiers and analytics.</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                            disabled={filteredUsers.length === 0}
+                            onClick={() => openActionModal('message', filteredUsers)}
+                            className="btn btn-primary"
+                            style={{ padding: '10px 20px', borderRadius: '100px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <Mail size={18} /> Batch Message
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            {status.text && (
-                <div className={`alert ${status.type === 'error' ? 'alert-error' : 'alert-success'}`} style={{ marginBottom: '1.5rem' }}>
-                    {status.type === 'error' ? <AlertCircle size={18} /> : <ShieldCheck size={18} />}
-                    {status.text}
+                {status.text && (
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`alert ${status.type === 'error' ? 'alert-error' : 'alert-success'}`} style={{ marginBottom: '2rem' }}>
+                        {status.type === 'error' ? <AlertCircle size={18} /> : <ShieldCheck size={18} />}
+                        {status.text}
+                    </motion.div>
+                )}
+
+                {/* Advanced Filter Groups */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '700' }}>
+                        <Filter size={16} /> POPULATION SEGMENTATION
+                    </div>
+
+                    {filterGroups.map((group, idx) => (
+                        <div key={group.id} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <select
+                                className="form-input-wrapper"
+                                value={group.role}
+                                onChange={(e) => updateFilterGroup(group.id, 'role', e.target.value)}
+                                style={{ flex: 1, padding: '12px' }}
+                            >
+                                <option value="">All Roles</option>
+                                <option value="student">Students</option>
+                                <option value="faculty">Faculty</option>
+                                <option value="teacher">Teachers</option>
+                                <option value="admin">Admins</option>
+                            </select>
+                            <select
+                                className="form-input-wrapper"
+                                value={group.department}
+                                onChange={(e) => updateFilterGroup(group.id, 'department', e.target.value)}
+                                style={{ flex: 1, padding: '12px' }}
+                            >
+                                <option value="">All Departments</option>
+                                <option value="CSE">CSE</option>
+                                <option value="ECE">ECE</option>
+                                <option value="AIML">AIML</option>
+                                <option value="EEE">EEE</option>
+                                <option value="MECH">MECH</option>
+                                <option value="CIVIL">CIVIL</option>
+                            </select>
+                            <select
+                                className="form-input-wrapper"
+                                value={group.year}
+                                onChange={(e) => updateFilterGroup(group.id, 'year', e.target.value)}
+                                style={{ flex: 1, padding: '12px' }}
+                            >
+                                <option value="">All Years</option>
+                                <option value="2026">2026 Batch</option>
+                                <option value="2025">2025 Batch</option>
+                                <option value="2024">2024 Batch</option>
+                                <option value="2023">2023 Batch</option>
+                            </select>
+                            <button
+                                onClick={() => removeFilterGroup(group.id)}
+                                style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', padding: '12px', borderRadius: '8px', cursor: 'pointer' }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                    ))}
+
+                    <button
+                        onClick={addFilterGroup}
+                        style={{ alignSelf: 'flex-start', background: 'transparent', border: '1px dashed var(--glass-border)', color: 'var(--text-muted)', padding: '8px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.85rem' }}
+                    >
+                        <Plus size={16} /> Add population group
+                    </button>
                 </div>
-            )}
 
-            {/* Filters */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, position: 'relative', minWidth: '250px' }}>
-                    <Search size={18} style={{ position: 'absolute', left: '15px', top: '15px', color: 'var(--text-muted)' }} />
+                {/* Search Bar */}
+                <div style={{ position: 'relative' }}>
+                    <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input
                         type="text"
-                        placeholder="Search by name or email..."
-                        value={filters.search}
-                        onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                        placeholder="Search specifically by name or institutional email..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         className="form-input-wrapper"
-                        style={{ width: '100%', paddingLeft: '45px', padding: '12px 12px 12px 45px' }}
+                        style={{ width: '100%', paddingLeft: '45px', background: 'rgba(0,0,0,0.2)' }}
                     />
                 </div>
-
-                <select
-                    className="form-input-wrapper"
-                    value={filters.role}
-                    onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-                    style={{ padding: '12px 20px', width: 'auto' }}
-                >
-                    <option value="">All Roles</option>
-                    <option value="student">Students</option>
-                    <option value="faculty">Faculty</option>
-                    <option value="admin">Admins</option>
-                    <option value="editor_admin">Editor Admins</option>
-                </select>
-
-                <select
-                    className="form-input-wrapper"
-                    value={filters.department}
-                    onChange={(e) => setFilters({ ...filters, department: e.target.value })}
-                    style={{ padding: '12px 20px', width: 'auto' }}
-                >
-                    <option value="">All Departments</option>
-                    <option value="cse">CSE</option>
-                    <option value="ece">ECE</option>
-                    <option value="aiml">AIML</option>
-                    <option value="eee">EEE</option>
-                    <option value="mech">MECH</option>
-                    <option value="civil">CIVIL</option>
-                </select>
-
-                <select
-                    className="form-input-wrapper"
-                    value={filters.year}
-                    onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-                    style={{ padding: '12px 20px', width: 'auto' }}
-                >
-                    <option value="">All Years</option>
-                    {/* Assuming batches like 23, 22, 21, 20 */}
-                    <option value="26">1st Year (2026 Batch)</option>
-                    <option value="25">2nd Year (2025 Batch)</option>
-                    <option value="24">3rd Year (2024 Batch)</option>
-                    <option value="23">4th Year (2023 Batch)</option>
-                </select>
             </div>
 
-            {loading ? (
-                <div style={{ textAlign: 'center', padding: '4rem 0' }}>
-                    <div className="loader" style={{ margin: '0 auto' }}></div>
-                </div>
-            ) : (
+            {/* Users Table */}
+            <div className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
-                            <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '2px solid var(--glass-border)' }}>
-                                <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--text-muted)' }}>User Identifier</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--text-muted)' }}>Role Access</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--text-muted)' }}>Department</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--text-muted)' }}>Verification</th>
-                                {isBlackHat && <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--text-muted)' }}>Admin Actions</th>}
+                            <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--glass-border)' }}>
+                                <th style={{ padding: '1.2rem', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>User Context</th>
+                                <th style={{ padding: '1.2rem', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Department</th>
+                                <th style={{ padding: '1.2rem', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Role</th>
+                                <th style={{ padding: '1.2rem', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Status</th>
+                                <th style={{ padding: '1.2rem', textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Interaction</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <AnimatePresence>
-                                {displayedUsers.length > 0 ? displayedUsers.map(u => (
-                                    <motion.tr
-                                        key={u.id}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        style={{ borderBottom: '1px solid var(--glass-border)' }}
-                                    >
-                                        <td style={{ padding: '1.2rem 1rem' }}>
-                                            <div style={{ fontWeight: '700', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                {u.full_name || 'Anonymous User'}
-                                            </div>
-                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                                                <Mail size={12} /> {u.email}
-                                            </div>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={5} style={{ padding: '4rem', textAlign: 'center' }}>
+                                        <div className="loader" style={{ margin: '0 auto' }}></div>
+                                    </td>
+                                </tr>
+                            ) : filteredUsers.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        No users found in the selected population segments.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredUsers.map(u => (
+                                    <tr key={u.id} style={{ borderBottom: '1px solid var(--glass-border)', transition: 'background 0.2s' }}>
+                                        <td style={{ padding: '1.2rem' }}>
+                                            <div style={{ fontWeight: '700', color: 'white' }}>{u.full_name}</div>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{u.email}</div>
                                         </td>
-                                        <td style={{ padding: '1.2rem 1rem' }}>
+                                        <td style={{ padding: '1.2rem' }}>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{u.department || 'N/A'}</span>
+                                            {u.batch_year && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Batch of {u.batch_year}</span>}
+                                        </td>
+                                        <td style={{ padding: '1.2rem' }}>
                                             <span style={{
-                                                padding: '4px 10px',
-                                                borderRadius: '20px',
-                                                fontSize: '0.75rem',
-                                                fontWeight: '800',
-                                                textTransform: 'uppercase',
-                                                background: ['admin', 'black_hat_admin'].includes(u.role) ? 'rgba(239, 68, 68, 0.1)' : u.role === 'editor_admin' ? 'rgba(245, 158, 11, 0.1)' : u.role === 'faculty' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)',
-                                                color: ['admin', 'black_hat_admin'].includes(u.role) ? '#ef4444' : u.role === 'editor_admin' ? '#f59e0b' : u.role === 'faculty' ? '#10b981' : 'var(--primary)',
-                                                border: `1px solid ${['admin', 'black_hat_admin'].includes(u.role) ? 'rgba(239, 68, 68, 0.2)' : u.role === 'editor_admin' ? 'rgba(245, 158, 11, 0.2)' : u.role === 'faculty' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(139, 92, 246, 0.2)'}`
+                                                padding: '4px 10px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '900', textTransform: 'uppercase',
+                                                background: u.role === 'admin' ? 'rgba(239,68,68,0.1)' : 'rgba(59,130,246,0.1)',
+                                                color: u.role === 'admin' ? '#ef4444' : '#60a5fa',
+                                                border: `1px solid ${u.role === 'admin' ? 'rgba(239,68,68,0.2)' : 'rgba(59,130,246,0.2)'}`
                                             }}>
-                                                {u.role.replace('_', ' ')}
+                                                {u.role}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '1.2rem 1rem' }}>
-                                            {u.department ? (
-                                                <span style={{ textTransform: 'uppercase', fontWeight: '700', fontSize: '0.85rem' }}>{u.department}</span>
-                                            ) : '-'}
-                                        </td>
-                                        <td style={{ padding: '1.2rem 1rem' }}>
+                                        <td style={{ padding: '1.2rem' }}>
                                             {u.is_verified ? (
-                                                <span style={{ color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.85rem', fontWeight: '600' }}><ShieldCheck size={16} /> Verified</span>
+                                                <span style={{ color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', fontWeight: '600' }}><ShieldCheck size={14} /> Verified</span>
                                             ) : (
                                                 <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Pending</span>
                                             )}
                                         </td>
-                                        {isBlackHat && (
-                                            <td style={{ padding: '1.2rem 1rem', textAlign: 'right' }}>
-                                                {updatingRole === u.id ? (
-                                                    <div className="loader" style={{ width: '20px', height: '20px', margin: '0 0 0 auto', borderWidth: '3px' }}></div>
-                                                ) : (
-                                                    <select
-                                                        value={u.role}
-                                                        onChange={(e) => handleRoleUpdate(u.id, e.target.value)}
-                                                        style={{
-                                                            padding: '6px 10px',
-                                                            borderRadius: '6px',
-                                                            background: 'rgba(255,255,255,0.05)',
-                                                            border: '1px solid var(--glass-border)',
-                                                            color: 'var(--text-main)',
-                                                            fontSize: '0.8rem',
-                                                            cursor: 'pointer'
-                                                        }}
-                                                    >
-                                                        <option value="student">Student</option>
-                                                        <option value="faculty">Faculty</option>
-                                                        <option value="editor_admin">Editor Admin</option>
-                                                        <option value="admin">Full Admin</option>
-                                                    </select>
-                                                )}
-                                            </td>
-                                        )}
-                                    </motion.tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan={isBlackHat ? 5 : 4} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                                            No users matched your exact query filters.
+                                        <td style={{ padding: '1.2rem', textAlign: 'right' }}>
+                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                <button
+                                                    onClick={() => openActionModal('message', [u])}
+                                                    title="Send Direct Message"
+                                                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                                                >
+                                                    <Mail size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => openActionModal('review', [u])}
+                                                    title="Send Review Request"
+                                                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#f59e0b', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                                                >
+                                                    <FileText size={18} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
-                                )}
-                            </AnimatePresence>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
-            )}
+            </div>
+
+            {/* Messaging Modal */}
+            <AnimatePresence>
+                {isMessageModalOpen && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass-card" style={{ maxWidth: '600px', width: '100%', padding: '2rem', position: 'relative' }}>
+                            <button onClick={() => setIsMessageModalOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={24} /></button>
+
+                            <h3 style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>Send Institutional Message</h3>
+                            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Transmitting to {targetUserIds.length} target recipients.</p>
+
+                            <form onSubmit={handleSendMessage}>
+                                <div style={{ marginBottom: '1.5rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Message Content</label>
+                                    <textarea
+                                        required
+                                        value={messageText}
+                                        onChange={(e) => setMessageText(e.target.value)}
+                                        placeholder="Compose your secure message here..."
+                                        style={{ width: '100%', minHeight: '150px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '15px', color: 'white', fontSize: '1rem', resize: 'none' }}
+                                    />
+                                </div>
+
+                                <div style={{ marginBottom: '2rem' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', padding: '10px 20px', borderRadius: '8px', width: 'fit-content' }}>
+                                        <Paperclip size={18} />
+                                        {messageFile ? messageFile.name : 'Attach Image or PDF'}
+                                        <input type="file" onChange={(e) => setMessageFile(e.target.files[0])} style={{ display: 'none' }} accept="image/*,.pdf" />
+                                    </label>
+                                </div>
+
+                                <button disabled={sending} type="submit" className="btn btn-primary" style={{ width: '100%', padding: '15px', borderRadius: '12px', fontSize: '1.1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+                                    {sending ? 'Transmitting...' : <><Send size={18} /> Dispatch Payload</>}
+                                </button>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Quick Review Modal */}
+            <AnimatePresence>
+                {isReviewModalOpen && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass-card" style={{ maxWidth: '500px', width: '100%', padding: '2.5rem', position: 'relative' }}>
+                            <button onClick={() => setIsReviewModalOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={24} /></button>
+
+                            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                                <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                                    <FileText size={32} />
+                                </div>
+                                <h3 style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>Quick Review Dispatch</h3>
+                                <p style={{ color: 'var(--text-muted)' }}>Request performance feedback from {targetUserIds.length} users.</p>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <p style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Select Review Template</p>
+                                {[
+                                    'Academic Performance Review',
+                                    'Campus Conduct Evaluation',
+                                    'Project Milestone Feedback',
+                                    'Mid-Term Progress Check'
+                                ].map(title => (
+                                    <button
+                                        key={title}
+                                        disabled={sending}
+                                        onClick={() => handleSendQuickReview(title)}
+                                        style={{
+                                            background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '16px 20px', color: 'white', textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                            fontWeight: '600'
+                                        }}
+                                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
+                                        onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                                    >
+                                        {title}
+                                        <Send size={16} color="var(--primary)" />
+                                    </button>
+                                ))}
+                            </div>
+
+                            {sending && (
+                                <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                                    <div className="loader" style={{ width: '25px', height: '25px', margin: '0 auto' }}></div>
+                                    <p style={{ marginTop: '10px', fontSize: '0.9rem' }}>Transmitting reviews...</p>
+                                </div>
+                            )}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
