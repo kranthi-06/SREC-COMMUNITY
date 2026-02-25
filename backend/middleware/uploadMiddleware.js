@@ -2,14 +2,14 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure uploads directory exists - In Vercel, use /tmp if possible, but for diskStorage we need a writable path
-const uploadDir = process.env.VERCEL ? '/tmp/uploads' : 'uploads';
+// Ensure uploads directory exists - In Vercel, use /tmp if possible
+const uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(__dirname, '..', 'uploads');
 try {
     if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
     }
 } catch (err) {
-    console.error('Upload directory creation failed:', err);
+    console.warn('Upload directory creation warning (might be read-only build environment):', err.message);
 }
 
 const storage = multer.diskStorage({

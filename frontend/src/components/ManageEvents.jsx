@@ -80,7 +80,7 @@ const ManageEvents = () => {
             setPreviewUrl('');
             fetchEvents();
         } catch (error) {
-            alert('Failed to add event');
+            alert('Failed to add event: ' + (error.response?.data?.error || error.message));
         } finally {
             setSubmitting(false);
         }
