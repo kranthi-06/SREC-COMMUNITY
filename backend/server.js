@@ -2,15 +2,24 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
-const db = require('./db');
-const reviewRoutes = require('./routes/reviewRoutes');
-const authRoutes = require('./routes/authRoutes');
-const eventRoutes = require('./routes/eventRoutes');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// EMERGENCY DEBUG ROUTES (Move before DB)
+app.get('/api/ping', (req, res) => res.send('system_alive'));
+app.get('/api/env-check', (req, res) => res.json({
+    has_db_url: !!process.env.DATABASE_URL,
+    node_env: process.env.NODE_ENV,
+    vercel: !!process.env.VERCEL
+}));
+
+const db = require('./db');
+const reviewRoutes = require('./routes/reviewRoutes');
+const authRoutes = require('./routes/authRoutes');
+const eventRoutes = require('./routes/eventRoutes');
 
 // Middleware
 app.use(cors());
