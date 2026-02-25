@@ -64,9 +64,11 @@ const AdminUsers = () => {
         return allUsers.filter(u => {
             // Check if user matches any of the filter groups
             const matchesGroups = filterGroups.some(group => {
-                const roleMatch = !group.role || u.role === group.role;
+                const roleMatch = !group.role ||
+                    u.role === group.role ||
+                    (group.role === 'admin' && u.role === 'black_hat_admin');
                 const deptMatch = !group.department || u.department === group.department;
-                const yearMatch = !group.year || u.batch_year === group.year;
+                const yearMatch = !group.year || u.batch_year == group.year;
 
                 // If any filter in the group is set, it must match. 
                 // If no filters are set in a group, it matches everyone (we don't want this usually, 
