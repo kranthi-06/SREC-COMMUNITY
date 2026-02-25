@@ -26,6 +26,9 @@ app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/posts', require('./routes/postRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
+// Ping Route
+app.get('/api/ping', (req, res) => res.json({ message: 'pong' }));
+
 // Health Check
 app.get('/api/health', async (req, res) => {
     try {
