@@ -56,7 +56,10 @@ const Login = ({ routeType }) => {
             await login(routeType, normalizedEmail, password);
             navigate('/');
         } catch (err) {
-            const serverError = err.response?.data?.error;
+            let serverError = err.response?.data?.error;
+            if (typeof serverError === 'object' && serverError !== null) {
+                serverError = serverError.message || JSON.stringify(serverError);
+            }
             if (err.response?.status === 401 || err.response?.status === 403) {
                 setError(serverError || 'Invalid email, password, or role. Please try again.');
             } else if (err.response?.status === 404) {

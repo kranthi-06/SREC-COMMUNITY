@@ -95,8 +95,11 @@ const Register = ({ routeType }) => {
                 setStep('otp');
             }, 2000);
         } catch (err) {
-            const serverError = err.response?.data?.error;
-            if (err.response?.status === 409 || (serverError && serverError.toLowerCase().includes('exist'))) {
+            let serverError = err.response?.data?.error;
+            if (typeof serverError === 'object' && serverError !== null) {
+                serverError = serverError.message || JSON.stringify(serverError);
+            }
+            if (err.response?.status === 409 || (typeof serverError === 'string' && serverError.toLowerCase().includes('exist'))) {
                 setError('An account with this email already exists. Try logging in.');
             } else if (err.code === 'ERR_NETWORK') {
                 setError('Unable to connect to server. Please check your connection.');
@@ -127,7 +130,10 @@ const Register = ({ routeType }) => {
                 setTimeout(() => navigate('/'), 2000);
             }, 1000);
         } catch (err) {
-            const serverError = err.response?.data?.error;
+            let serverError = err.response?.data?.error;
+            if (typeof serverError === 'object' && serverError !== null) {
+                serverError = serverError.message || JSON.stringify(serverError);
+            }
             setError(serverError || 'OTP Verification failed. Please ensure the code is correct.');
             setIsLoading(false);
         }
