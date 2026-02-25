@@ -60,6 +60,16 @@ const startServer = async () => {
     }
 };
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled Error:', err);
+    res.status(500).json({
+        error: 'Critical Server Error',
+        message: err.message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+});
+
 // Start server if not running in Vercel
 if (!process.env.VERCEL) {
     startServer();
