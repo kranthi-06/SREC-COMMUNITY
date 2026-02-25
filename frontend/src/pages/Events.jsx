@@ -135,7 +135,16 @@ const Events = () => {
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Calendar size={16} /> {new Date(evt.event_date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                                            <Calendar size={16} />
+                                            {new Date(evt.event_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                            {evt.event_end_date && new Date(evt.event_end_date).toDateString() !== new Date(evt.event_date).toDateString() &&
+                                                ` - ${new Date(evt.event_end_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                                            }
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Clock size={16} />
+                                            {new Date(evt.event_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {evt.event_end_date && ` - ${new Date(evt.event_end_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                                         </div>
                                     </div>
 

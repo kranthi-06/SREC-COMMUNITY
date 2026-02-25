@@ -3,7 +3,7 @@ const db = require('../db');
 exports.getAllEvents = async (req, res) => {
     try {
         const result = await db.query(`
-            SELECT e.id, e.title, e.description, e.department, e.event_date, e.status, e.attachment_url, e.category, e.created_at,
+            SELECT e.id, e.title, e.description, e.department, e.event_date, e.event_end_date, e.status, e.attachment_url, e.category, e.event_type, e.created_at,
                    u.full_name as creator_name
             FROM campus_events e
             JOIN users u ON e.creator_id = u.id
@@ -18,10 +18,10 @@ exports.getAllEvents = async (req, res) => {
 
 exports.createEvent = async (req, res) => {
     try {
-        const { title, description, department, event_date, event_time, category, type, media_url } = req.body;
+        const { title, description, department, event_date, event_time, event_end_date, event_end_time, category, type, media_url } = req.body;
 
-        // Use category if provided, otherwise fallback to 'type' from frontend
-        const finalCategory = category || type;
+        // Final Event Type (Workshop, Fest, etc)
+        const finalEventType = type || category || 'General';
 
         let attachment_url = media_url || null;
 
@@ -29,31 +29,51 @@ exports.createEvent = async (req, res) => {
             attachment_url = `/uploads/${req.file.filename}`;
         }
 
-        if (!title || !description || !event_date || !finalCategory) {
-            return res.status(400).json({ error: 'Missing mandatory event parameters (title, description, date, and category are required).' });
+        if (!title || !description || !event_date) {
+            return res.status(400).json({ error: 'Missing mandatory event parameters (title, description, and start date are required).' });
         }
 
-        // Expanded validation to include frontend types
-        const validCategories = [
-            'Upcoming Events', 'Ongoing Events', 'Completed Events', 'Department-specific Monthly Events',
-            'Workshop', 'Fest', 'Seminar', 'Cultural', 'Sports'
-        ];
-
-        if (!validCategories.includes(finalCategory)) {
-            return res.status(400).json({ error: `Invalid Category: ${finalCategory}. Valid options are: ${validCategories.join(', ')}` });
-        }
-
-        // Combine date and time if time is provided
-        let finalDate = new Date(event_date);
+        // Parse Start Date/Time
+        let finalStartDate = new Date(event_date);
         if (event_time && event_time.includes(':')) {
             const [hours, minutes] = event_time.split(':');
-            finalDate.setHours(parseInt(hours), parseInt(minutes));
+            finalStartDate.setHours(parseInt(hours), parseInt(minutes));
         }
 
+        // Parse End Date/Time (Default to 2 hours after start if not provided)
+        let finalEndDate;
+        if (event_end_date) {
+            finalEndDate = new Date(event_end_date);
+            if (event_end_time && event_end_time.includes(':')) {
+                const [ehours, eminutes] = event_end_time.split(':');
+                finalEndDate.setHours(parseInt(ehours), parseInt(eminutes));
+            }
+        } else {
+            finalEndDate = new Date(finalStartDate.getTime() + (2 * 60 * 60 * 1000));
+        }
+
+        // Automatic Categorization based on Date
+        const now = new Date();
+        let computedCategory = 'Upcoming Events';
+        let computedStatus = 'upcoming';
+
+        if (now >= finalStartDate && now <= finalEndDate) {
+            computedCategory = 'Ongoing Events';
+            computedStatus = 'ongoing';
+        } else if (now > finalEndDate) {
+            computedCategory = 'Completed Events';
+            computedStatus = 'completed';
+        }
+
+        // If the admin manually specified 'Department-specific Monthly Events', preserve it
+        const finalCategory = (category === 'Department-specific Monthly Events' || type === 'Department-specific Monthly Events')
+            ? 'Department-specific Monthly Events'
+            : computedCategory;
+
         const result = await db.query(`
-            INSERT INTO campus_events (creator_id, title, description, department, event_date, status, attachment_url, category)
-            VALUES ($1, $2, $3, $4, $5, 'upcoming', $6, $7) RETURNING id
-        `, [req.user.userId, title, description, department || null, finalDate, attachment_url, finalCategory]);
+            INSERT INTO campus_events (creator_id, title, description, department, event_date, event_end_date, status, attachment_url, category, event_type)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id
+        `, [req.user.userId, title, description, department || null, finalStartDate, finalEndDate, computedStatus, attachment_url, finalCategory, finalEventType]);
 
         res.status(201).json({ message: 'Campus event synthesized', id: result.rows[0].id });
     } catch (error) {

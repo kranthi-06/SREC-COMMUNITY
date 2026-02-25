@@ -30,8 +30,15 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(uploadsDir));
 if (process.env.VERCEL) {
-    // Fallback static for bundled uploads if any
     app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+    app.get('/uploads/:filename', (req, res) => {
+        const filePath = path.join(uploadsDir, req.params.filename);
+        if (fs.existsSync(filePath)) {
+            res.sendFile(filePath);
+        } else {
+            res.status(404).send('File not found');
+        }
+    });
 }
 
 // Routes

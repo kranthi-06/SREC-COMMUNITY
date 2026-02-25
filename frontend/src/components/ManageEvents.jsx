@@ -15,7 +15,9 @@ const ManageEvents = () => {
         media_url: '',
         media_type: 'image',
         event_date: '',
-        event_time: ''
+        event_time: '',
+        event_end_date: '',
+        event_end_time: ''
     });
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState('');
@@ -56,6 +58,8 @@ const ManageEvents = () => {
             data.append('media_type', formData.media_type);
             data.append('event_date', formData.event_date);
             data.append('event_time', formData.event_time);
+            data.append('event_end_date', formData.event_end_date);
+            data.append('event_end_time', formData.event_end_time);
 
             if (selectedFile) {
                 data.append('media', selectedFile);
@@ -144,9 +148,9 @@ const ManageEvents = () => {
                                     />
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div>
-                                        <label style={{ fontWeight: '700', marginBottom: '8px', display: 'block' }}>Event Date</label>
+                                <div>
+                                    <label style={{ fontWeight: '700', marginBottom: '8px', display: 'block' }}>Event Start Date & Time</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                         <div style={{ position: 'relative' }}>
                                             <Calendar size={18} style={{ position: 'absolute', left: '12px', top: '15px', opacity: 0.5, pointerEvents: 'none', zIndex: 50 }} />
                                             <input
@@ -157,9 +161,6 @@ const ManageEvents = () => {
                                                 onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
                                             />
                                         </div>
-                                    </div>
-                                    <div>
-                                        <label style={{ fontWeight: '700', marginBottom: '8px', display: 'block' }}>Event Time</label>
                                         <div style={{ position: 'relative' }}>
                                             <Clock size={18} style={{ position: 'absolute', left: '12px', top: '15px', opacity: 0.5, pointerEvents: 'none', zIndex: 50 }} />
                                             <input
@@ -168,6 +169,30 @@ const ManageEvents = () => {
                                                 style={{ paddingLeft: '40px', position: 'relative', zIndex: 40 }}
                                                 value={formData.event_time}
                                                 onChange={(e) => setFormData({ ...formData, event_time: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label style={{ fontWeight: '700', marginBottom: '8px', display: 'block' }}>Event End Date & Time (Optional)</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                        <div style={{ position: 'relative' }}>
+                                            <Calendar size={18} style={{ position: 'absolute', left: '12px', top: '15px', opacity: 0.5, pointerEvents: 'none', zIndex: 50 }} />
+                                            <input
+                                                type="date"
+                                                style={{ paddingLeft: '40px', position: 'relative', zIndex: 40 }}
+                                                value={formData.event_end_date}
+                                                onChange={(e) => setFormData({ ...formData, event_end_date: e.target.value })}
+                                            />
+                                        </div>
+                                        <div style={{ position: 'relative' }}>
+                                            <Clock size={18} style={{ position: 'absolute', left: '12px', top: '15px', opacity: 0.5, pointerEvents: 'none', zIndex: 50 }} />
+                                            <input
+                                                type="time"
+                                                style={{ paddingLeft: '40px', position: 'relative', zIndex: 40 }}
+                                                value={formData.event_end_time}
+                                                onChange={(e) => setFormData({ ...formData, event_end_time: e.target.value })}
                                             />
                                         </div>
                                     </div>
@@ -281,18 +306,18 @@ const ManageEvents = () => {
                             className="glass-panel"
                             style={{ overflow: 'hidden', padding: '0', display: 'flex', flexDirection: 'column' }}
                         >
-                            {event.media_url && (
-                                event.media_type === 'image' ? (
-                                    <img src={event.media_url} style={{ width: '100%', height: '180px', objectFit: 'cover' }} alt={event.title} />
-                                ) : (
-                                    <video src={event.media_url} style={{ width: '100%', height: '180px', objectFit: 'cover' }} />
-                                )
+                            {event.attachment_url && (
+                                <img
+                                    src={event.attachment_url.startsWith('http') ? event.attachment_url : `${import.meta.env.VITE_API_URL.replace('/api', '')}${event.attachment_url}`}
+                                    style={{ width: '100%', height: '180px', objectFit: 'cover' }}
+                                    alt={event.title}
+                                />
                             )}
                             <div style={{ padding: '1.5rem', flex: 1 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                     <div>
                                         <span style={{ fontSize: '0.65rem', fontWeight: '800', background: 'var(--primary)', color: 'white', padding: '3px 10px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                            {event.type}
+                                            {event.event_type || event.type}
                                         </span>
                                         <h4 style={{ margin: '10px 0 6px', fontSize: '1.2rem', fontWeight: '800' }}>{event.title}</h4>
                                         <div style={{ display: 'flex', gap: '12px', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>
