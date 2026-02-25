@@ -16,24 +16,24 @@ app.get('/api/env-check', (req, res) => res.json({
     vercel: !!process.env.VERCEL
 }));
 
-const db = require('./db');
-const reviewRoutes = require('./routes/reviewRoutes');
-const authRoutes = require('./routes/authRoutes');
-const eventRoutes = require('./routes/eventRoutes');
+// const db = require('./db');
+// const reviewRoutes = require('./routes/reviewRoutes');
+// const authRoutes = require('./routes/authRoutes');
+// const eventRoutes = require('./routes/eventRoutes');
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
-app.use('/api/reviews', reviewRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api/profile', require('./routes/profileRoutes'));
-app.use('/api/messages', require('./routes/messageRoutes'));
-app.use('/api/posts', require('./routes/postRoutes'));
-app.use('/api/admin', require('./routes/adminRoutes'));
+// app.use('/api/reviews', reviewRoutes);
+// app.use('/api/auth', authRoutes);
+// app.use('/api/events', eventRoutes);
+// app.use('/api/profile', require('./routes/profileRoutes'));
+// app.use('/api/messages', require('./routes/messageRoutes'));
+// app.use('/api/posts', require('./routes/postRoutes'));
+// app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Ping Route
 app.get('/api/ping', (req, res) => res.json({ message: 'pong' }));
