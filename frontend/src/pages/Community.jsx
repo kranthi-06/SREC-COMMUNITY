@@ -62,7 +62,14 @@ const Community = () => {
 
     const handleCreatePost = async (e) => {
         e.preventDefault();
-        if (!newPost.content && !selectedImage && !selectedPdf && !newPost.link_url) return;
+        if (!newPost.content && !selectedImage && !selectedVideo && !selectedPdf && !newPost.link_url) return;
+
+        // Vercel / Serverless Payload Limit Check (~4.5MB)
+        const checkSize = (file) => file && file.size > 4.5 * 1024 * 1024;
+        if (checkSize(selectedImage) || checkSize(selectedVideo) || checkSize(selectedPdf)) {
+            alert("File is too large for the server. Please keep files under 4.5MB for Vercel deployment.");
+            return;
+        }
 
         setPosting(true);
         const formData = new FormData();
