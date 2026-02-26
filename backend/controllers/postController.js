@@ -27,8 +27,16 @@ exports.createPost = async (req, res) => {
         let pdf_url = null;
 
         if (req.files) {
-            if (req.files.image) image_url = `/uploads/${req.files.image[0].filename}`;
-            if (req.files.pdf) pdf_url = `/uploads/${req.files.pdf[0].filename}`;
+            if (req.files.image) {
+                const b64 = req.files.image[0].buffer.toString('base64');
+                const mime = req.files.image[0].mimetype;
+                image_url = `data:${mime};base64,${b64}`;
+            }
+            if (req.files.pdf) {
+                const b64 = req.files.pdf[0].buffer.toString('base64');
+                const mime = req.files.pdf[0].mimetype;
+                pdf_url = `data:${mime};base64,${b64}`;
+            }
         }
 
         if (!content && !image_url && !pdf_url && !link_url) {

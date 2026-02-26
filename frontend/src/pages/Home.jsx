@@ -135,23 +135,22 @@ const EventsGrid = () => {
                     style={{ padding: '0', overflow: 'hidden' }}
                 >
                     {/* Event image/video with zoom-on-hover effect */}
-                    {event.media_url && (
+                    {event.attachment_url && (
                         <div style={{ overflow: 'hidden' }}>
-                            {event.media_type === 'image' ? (
-                                <img
-                                    src={event.media_url}
-                                    className="event-image"
-                                    style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }}
-                                    alt={event.title}
-                                />
-                            ) : (
-                                <video
-                                    src={event.media_url}
-                                    className="event-image"
-                                    style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }}
-                                    muted autoPlay loop playsInline
-                                />
-                            )}
+                            <img
+                                src={(event.attachment_url.startsWith('http') || event.attachment_url.startsWith('data:'))
+                                    ? event.attachment_url
+                                    : `${(import.meta.env.VITE_API_URL || '').replace(/\/api$/, '')}${event.attachment_url}`
+                                }
+                                className="event-image"
+                                style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }}
+                                alt={event.title}
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://via.placeholder.com/600x400?text=Image+Unavailable';
+                                    e.target.style.opacity = '0.5';
+                                }}
+                            />
                         </div>
                     )}
                     <div style={{ padding: '1.5rem' }}>

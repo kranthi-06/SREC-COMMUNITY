@@ -326,14 +326,14 @@ const PostCard = ({ post, user, isAdmin, onLike, onDelete, onLoadComments, isAct
             {post.image_url && (
                 <div style={{ background: '#000', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                     <img
-                        src={post.image_url.startsWith('http') 
-                            ? post.image_url 
+                        src={(post.image_url.startsWith('http') || post.image_url.startsWith('data:'))
+                            ? post.image_url
                             : `${(import.meta.env.VITE_API_URL || '').replace(/\/api$/, '')}${post.image_url}`
                         }
                         style={{ width: '100%', maxHeight: '600px', objectFit: 'contain' }}
                         alt="Post Content"
                         onError={(e) => {
-                            e.target.onerror = null; 
+                            e.target.onerror = null;
                             e.target.src = 'https://via.placeholder.com/600x400?text=Image+Unavailable';
                             e.target.style.opacity = '0.5';
                         }}
@@ -356,7 +356,7 @@ const PostCard = ({ post, user, isAdmin, onLike, onDelete, onLoadComments, isAct
                         </a>
                     )}
                     {post.pdf_url && (
-                        <a href={`${import.meta.env.VITE_API_URL.replace('/api', '')}${post.pdf_url}`} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#ef4444', textDecoration: 'none', background: 'rgba(239, 68, 68, 0.1)', padding: '5px 12px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <a href={(post.pdf_url.startsWith('http') || post.pdf_url.startsWith('data:')) ? post.pdf_url : `${(import.meta.env.VITE_API_URL || '').replace(/\/api$/, '')}${post.pdf_url}`} download="Document.pdf" target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#ef4444', textDecoration: 'none', background: 'rgba(239, 68, 68, 0.1)', padding: '5px 12px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <FileText size={12} /> Document
                         </a>
                     )}
