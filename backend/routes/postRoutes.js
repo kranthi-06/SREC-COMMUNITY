@@ -7,11 +7,18 @@ const path = require('path');
 const fs = require('fs');
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB for video support
+});
 
 router.get('/', protect, postController.getAllPosts);
 router.post('/', protect, postCreators, (req, res, next) => {
-    upload.fields([{ name: 'image', maxCount: 1 }, { name: 'pdf', maxCount: 1 }])(req, res, (err) => {
+    upload.fields([
+        { name: 'image', maxCount: 1 },
+        { name: 'pdf', maxCount: 1 },
+        { name: 'video', maxCount: 1 }
+    ])(req, res, (err) => {
         if (err) {
             console.error('Multer Error:', err);
             return res.status(400).json({ error: 'File upload error: ' + err.message });

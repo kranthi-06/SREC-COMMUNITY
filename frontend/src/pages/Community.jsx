@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { MessageSquare, Heart, Share2, Image as ImageIcon, FileText, Send, Trash2, Link as LinkIcon, AlertCircle, Plus, X, ImageOff } from 'lucide-react';
+import { MessageSquare, Heart, Share2, Image as ImageIcon, FileText, Send, Trash2, Link as LinkIcon, AlertCircle, Plus, X, ImageOff, Video } from 'lucide-react';
 
 /**
  * Resolves media URL properly.
@@ -31,6 +31,7 @@ const Community = () => {
     // Post Creation State
     const [newPost, setNewPost] = useState({ content: '', link_url: '' });
     const [selectedImage, setSelectedImage] = useState(null);
+    const [selectedVideo, setSelectedVideo] = useState(null);
     const [selectedPdf, setSelectedPdf] = useState(null);
     const [posting, setPosting] = useState(false);
 
@@ -68,6 +69,7 @@ const Community = () => {
         formData.append('content', newPost.content);
         if (newPost.link_url) formData.append('link_url', newPost.link_url);
         if (selectedImage) formData.append('image', selectedImage);
+        if (selectedVideo) formData.append('video', selectedVideo);
         if (selectedPdf) formData.append('pdf', selectedPdf);
 
         try {
@@ -76,6 +78,7 @@ const Community = () => {
             });
             setNewPost({ content: '', link_url: '' });
             setSelectedImage(null);
+            setSelectedVideo(null);
             setSelectedPdf(null);
             setIsCreateModalOpen(false);
             fetchPosts();
@@ -253,9 +256,10 @@ const Community = () => {
                                 }}
                             />
 
-                            {(selectedImage || selectedPdf || newPost.link_url) && (
+                            {(selectedImage || selectedVideo || selectedPdf || newPost.link_url) && (
                                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', marginBottom: '15px', border: '1px solid var(--glass-border)' }}>
                                     {selectedImage && <p style={{ fontSize: '0.8rem', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '5px' }}><ImageIcon size={12} /> {selectedImage.name}</p>}
+                                    {selectedVideo && <p style={{ fontSize: '0.8rem', color: 'var(--g-blue)', display: 'flex', alignItems: 'center', gap: '5px' }}><Video size={12} /> {selectedVideo.name}</p>}
                                     {selectedPdf && <p style={{ fontSize: '0.8rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '5px' }}><FileText size={12} /> {selectedPdf.name}</p>}
                                     {newPost.link_url && <p style={{ fontSize: '0.8rem', color: 'var(--g-blue)', display: 'flex', alignItems: 'center', gap: '5px' }}><LinkIcon size={12} /> {newPost.link_url}</p>}
                                 </div>
@@ -264,8 +268,12 @@ const Community = () => {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', gap: '15px' }}>
                                     <label style={{ cursor: 'pointer', color: 'var(--text-light)', opacity: 0.7 }}>
-                                        <input type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => setSelectedImage(e.target.files[0])} />
+                                        <input type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => { setSelectedImage(e.target.files[0]); setSelectedVideo(null); }} />
                                         <ImageIcon size={22} />
+                                    </label>
+                                    <label style={{ cursor: 'pointer', color: 'var(--text-light)', opacity: 0.7 }}>
+                                        <input type="file" style={{ display: 'none' }} accept="video/*" onChange={(e) => { setSelectedVideo(e.target.files[0]); setSelectedImage(null); }} />
+                                        <Video size={22} />
                                     </label>
                                     <label style={{ cursor: 'pointer', color: 'var(--text-light)', opacity: 0.7 }}>
                                         <input type="file" style={{ display: 'none' }} accept=".pdf" onChange={(e) => setSelectedPdf(e.target.files[0])} />
@@ -284,7 +292,7 @@ const Community = () => {
                                 </div>
                                 <button
                                     onClick={handleCreatePost}
-                                    disabled={posting || (!newPost.content && !selectedImage && !selectedPdf && !newPost.link_url)}
+                                    disabled={posting || (!newPost.content && !selectedImage && !selectedVideo && !selectedPdf && !newPost.link_url)}
                                     className="btn btn-primary"
                                     style={{ padding: '10px 25px', borderRadius: '30px' }}
                                 >
@@ -340,7 +348,7 @@ const PostCard = ({ post, user, isAdmin, onLike, onDelete, onLoadComments, isAct
                 )}
             </div>
 
-            {/* Media/Image */}
+            {/* Media View (Image or Video) */}
             {post.image_url && (
                 <div style={{ background: '#111', minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                     <img
@@ -352,6 +360,18 @@ const PostCard = ({ post, user, isAdmin, onLike, onDelete, onLoadComments, isAct
                             e.target.style.display = 'none';
                             e.target.parentElement.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem;color:rgba(255,255,255,0.3)"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"></line><path d="M10.41 10.41a2 2 0 1 1-2.83-2.83"></path><line x1="13.5" y1="13.5" x2="6" y2="21"></line><path d="M18 12l-7 7"></path><path d="M3.59 3.59A1.99 1.99 0 0 0 3 5v14a2 2 0 0 0 2 2h14c.55 0 1.052-.22 1.41-.59"></path><path d="M21 15V5a2 2 0 0 0-2-2H9"></path></svg><span style="margin-top:8px;font-size:0.85rem">Image unavailable</span></div>';
                         }}
+                    />
+                </div>
+            )}
+
+            {post.video_url && (
+                <div style={{ background: '#000', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                    <video
+                        src={getMediaUrl(post.video_url)}
+                        controls
+                        style={{ width: '100%', maxHeight: '600px', outline: 'none' }}
+                        preload="metadata"
+                        playsInline
                     />
                 </div>
             )}
