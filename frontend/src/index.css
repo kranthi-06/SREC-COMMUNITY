@@ -10,13 +10,13 @@
    CSS CUSTOM PROPERTIES — Design Tokens
    ============================================ */
 :root {
-  /* Primary teal palette inspired by user image */
-  --accent-green: #418C94;
-  --accent-green-light: #5CABB1;
-  --accent-olive: #225760;
-  --accent-sage: #A3C9C9;
-  --accent-gold: #225760;
-  --accent-cream: #F2F4F5;
+  /* Reverted to Primary earthy/nature palette */
+  --accent-green: #8B9A46;
+  --accent-green-light: #A3B356;
+  --accent-olive: #6B7A3D;
+  --accent-sage: #9CAF88;
+  --accent-gold: #C4A052;
+  --accent-cream: #E8DCC8;
 
   /* Dark theme base - Pure Black */
   --bg-main: #000000;
@@ -24,12 +24,12 @@
   --bg-card: #050505;
   --text-main: #FFFFFF;
 
-  --text-muted: #8FA1A1;
-  --text-light: #B0C4C4;
+  --text-muted: #8A8A82;
+  --text-light: #B8B6AE;
 
   /* Glass morphism */
-  --glass-bg: rgba(10, 15, 15, 0.65);
-  --glass-border: rgba(65, 140, 148, 0.12);
+  --glass-bg: rgba(14, 17, 12, 0.65);
+  --glass-border: rgba(139, 154, 70, 0.12);
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 
   /* Alert / Status colors */
@@ -43,14 +43,14 @@
   --warning-bg: rgba(245, 158, 11, 0.08);
 
   /* Legacy color compatibility */
-  --g-blue: #418C94;
-  --primary: #418C94;
-  --primary-h: 185;
-  --primary-s: 39%;
-  --secondary: #225760;
-  --secondary-h: 188;
-  --secondary-s: 47%;
-  --accent: #5CABB1;
+  --g-blue: #8B9A46;
+  --primary: #8B9A46;
+  --primary-h: 72;
+  --primary-s: 38%;
+  --secondary: #6B7A3D;
+  --secondary-h: 86;
+  --secondary-s: 33%;
+  --accent: #C4A052;
 
   /* Geometry */
   --radius-xs: 10px;
@@ -588,7 +588,7 @@ nav {
 
 .nav-link {
   text-decoration: none;
-  color: var(--text-main);
+  color: var(--text-light);
   font-weight: 600;
   font-size: 0.88rem;
   padding: 8px 16px;
