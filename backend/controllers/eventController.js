@@ -6,7 +6,7 @@ exports.getAllEvents = async (req, res) => {
             SELECT e.id, e.title, e.description, e.department, e.event_date, e.event_end_date, e.status, e.attachment_url, e.category, e.event_type, e.created_at,
                    u.full_name as creator_name
             FROM campus_events e
-            JOIN users u ON e.creator_id = u.id
+            LEFT JOIN users u ON e.creator_id = u.id
             ORDER BY e.event_date DESC
         `);
         res.json(result.rows);
