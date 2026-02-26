@@ -28,15 +28,22 @@ const eventRoutes = require('./routes/eventRoutes');
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Main Static Serving
 app.use('/uploads', express.static(uploadsDir));
+
 if (process.env.VERCEL) {
-    app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+    // Vercel handling: prefer /tmp (runtime uploads) but fall back to committed files
     app.get('/uploads/:filename', (req, res) => {
-        const filePath = path.join(uploadsDir, req.params.filename);
-        if (fs.existsSync(filePath)) {
-            res.sendFile(filePath);
+        const runtimePath = path.join('/tmp/uploads', req.params.filename);
+        const committedPath = path.join(__dirname, 'uploads', req.params.filename);
+
+        if (fs.existsSync(runtimePath)) {
+            return res.sendFile(runtimePath);
+        } else if (fs.existsSync(committedPath)) {
+            return res.sendFile(committedPath);
         } else {
-            res.status(404).send('File not found');
+            res.status(404).json({ error: 'File not found', filename: req.params.filename });
         }
     });
 }

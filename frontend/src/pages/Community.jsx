@@ -324,11 +324,19 @@ const PostCard = ({ post, user, isAdmin, onLike, onDelete, onLoadComments, isAct
 
             {/* Media/Image (Main focus for Instagram feel) */}
             {post.image_url && (
-                <div style={{ background: '#000', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ background: '#000', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                     <img
-                        src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${post.image_url}`}
+                        src={post.image_url.startsWith('http') 
+                            ? post.image_url 
+                            : `${(import.meta.env.VITE_API_URL || '').replace(/\/api$/, '')}${post.image_url}`
+                        }
                         style={{ width: '100%', maxHeight: '600px', objectFit: 'contain' }}
                         alt="Post Content"
+                        onError={(e) => {
+                            e.target.onerror = null; 
+                            e.target.src = 'https://via.placeholder.com/600x400?text=Image+Unavailable';
+                            e.target.style.opacity = '0.5';
+                        }}
                     />
                 </div>
             )}
