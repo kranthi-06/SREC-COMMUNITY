@@ -2,7 +2,25 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { MessageSquare, Heart, Share2, Image as ImageIcon, FileText, Send, Trash2, Link as LinkIcon, AlertCircle, Plus, X } from 'lucide-react';
+import { MessageSquare, Heart, Share2, Image as ImageIcon, FileText, Send, Trash2, Link as LinkIcon, AlertCircle, Plus, X, ImageOff } from 'lucide-react';
+
+/**
+ * Resolves media URL properly.
+ * Handles 3 cases:
+ *   1. Base64 data URI (data:image/...) → use directly
+ *   2. Full URL (http/https) → use directly 
+ *   3. Relative path (/uploads/...) → prepend backend base URL
+ */
+const getMediaUrl = (url) => {
+    if (!url) return null;
+    // Already a data URI or full URL → use as-is
+    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+    }
+    // Relative path → prepend backend base
+    const baseUrl = (import.meta.env.VITE_API_URL || '').replace('/api', '');
+    return `${baseUrl}${url}`;
+};
 
 const Community = () => {
     const { user } = useAuth();
@@ -322,13 +340,18 @@ const PostCard = ({ post, user, isAdmin, onLike, onDelete, onLoadComments, isAct
                 )}
             </div>
 
-            {/* Media/Image (Main focus for Instagram feel) */}
+            {/* Media/Image */}
             {post.image_url && (
-                <div style={{ background: '#000', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ background: '#111', minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                     <img
-                        src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${post.image_url}`}
+                        src={getMediaUrl(post.image_url)}
                         style={{ width: '100%', maxHeight: '600px', objectFit: 'contain' }}
                         alt="Post Content"
+                        loading="lazy"
+                        onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem;color:rgba(255,255,255,0.3)"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"></line><path d="M10.41 10.41a2 2 0 1 1-2.83-2.83"></path><line x1="13.5" y1="13.5" x2="6" y2="21"></line><path d="M18 12l-7 7"></path><path d="M3.59 3.59A1.99 1.99 0 0 0 3 5v14a2 2 0 0 0 2 2h14c.55 0 1.052-.22 1.41-.59"></path><path d="M21 15V5a2 2 0 0 0-2-2H9"></path></svg><span style="margin-top:8px;font-size:0.85rem">Image unavailable</span></div>';
+                        }}
                     />
                 </div>
             )}
@@ -348,7 +371,7 @@ const PostCard = ({ post, user, isAdmin, onLike, onDelete, onLoadComments, isAct
                         </a>
                     )}
                     {post.pdf_url && (
-                        <a href={`${import.meta.env.VITE_API_URL.replace('/api', '')}${post.pdf_url}`} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#ef4444', textDecoration: 'none', background: 'rgba(239, 68, 68, 0.1)', padding: '5px 12px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <a href={getMediaUrl(post.pdf_url)} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#ef4444', textDecoration: 'none', background: 'rgba(239, 68, 68, 0.1)', padding: '5px 12px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <FileText size={12} /> Document
                         </a>
                     )}

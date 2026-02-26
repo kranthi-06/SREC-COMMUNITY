@@ -1,5 +1,16 @@
+/**
+ * Post Controller — Community Posts System
+ * ==========================================
+ * CRUD for community posts with likes and comments.
+ * Students can view/like/comment but cannot create posts.
+ * All mutations are audit-logged.
+ */
 const db = require('../db');
 
+/**
+ * GET /api/posts
+ * Get all community posts with like/comment counts.
+ */
 exports.getAllPosts = async (req, res) => {
     try {
         const query = `
@@ -20,6 +31,11 @@ exports.getAllPosts = async (req, res) => {
     }
 };
 
+/**
+ * POST /api/posts
+ * Create a new community post. Faculty+ only.
+ * Images are converted to base64 data URIs for persistent storage.
+ */
 exports.createPost = async (req, res) => {
     try {
         const { content, link_url } = req.body;
@@ -27,8 +43,25 @@ exports.createPost = async (req, res) => {
         let pdf_url = null;
 
         if (req.files) {
-            if (req.files.image) image_url = `/uploads/${req.files.image[0].filename}`;
-            if (req.files.pdf) pdf_url = `/uploads/${req.files.pdf[0].filename}`;
+            // Convert image to base64 data URI for DB storage
+            // This ensures images persist on Vercel (ephemeral /tmp) and work everywhere
+            if (req.files.image) {
+                const imageFile = req.files.image[0];
+                const fs = require('fs');
+                try {
+                    const imageBuffer = fs.readFileSync(imageFile.path);
+                    const mimeType = imageFile.mimetype || 'image/jpeg';
+                    image_url = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+                    // Clean up temp file
+                    try { fs.unlinkSync(imageFile.path); } catch (e) { }
+                } catch (readErr) {
+                    console.error('Failed to read image file:', readErr);
+                    image_url = `/uploads/${imageFile.filename}`;
+                }
+            }
+            if (req.files.pdf) {
+                pdf_url = `/uploads/${req.files.pdf[0].filename}`;
+            }
         }
 
         if (!content && !image_url && !pdf_url && !link_url) {
@@ -40,6 +73,14 @@ exports.createPost = async (req, res) => {
             VALUES ($1, $2, $3, $4, $5) RETURNING id
         `, [req.user.userId, content || '', image_url, link_url, pdf_url]);
 
+        // Audit: Post Created
+        await req.audit('POST_CREATE', result.rows[0].id, {
+            contentPreview: (content || '').substring(0, 100),
+            hasImage: !!image_url,
+            hasPdf: !!pdf_url,
+            hasLink: !!link_url
+        });
+
         res.status(201).json({ message: 'Post created successfully', id: result.rows[0].id });
     } catch (error) {
         console.error('Error creating post:', error);
@@ -47,10 +88,13 @@ exports.createPost = async (req, res) => {
     }
 };
 
+/**
+ * POST /api/posts/:id/like
+ * Toggle like on a post.
+ */
 exports.likePost = async (req, res) => {
     try {
         const { id } = req.params;
-        // Check if liked
         const exists = await db.query('SELECT 1 FROM post_likes WHERE post_id = $1 AND user_id = $2', [id, req.user.userId]);
 
         if (exists.rows.length > 0) {
@@ -65,6 +109,10 @@ exports.likePost = async (req, res) => {
     }
 };
 
+/**
+ * GET /api/posts/:id/comments
+ * Get all comments for a post.
+ */
 exports.getComments = async (req, res) => {
     try {
         const { id } = req.params;
@@ -82,17 +130,22 @@ exports.getComments = async (req, res) => {
     }
 };
 
+/**
+ * POST /api/posts/:id/comments
+ * Add a comment to a post. All authenticated users can comment.
+ */
 exports.addComment = async (req, res) => {
     try {
         const { id } = req.params;
         const { content } = req.body;
 
         if (!content || !content.trim()) return res.status(400).json({ error: 'Comment cannot be empty.' });
+        if (content.length > 2000) return res.status(400).json({ error: 'Comment too long. Maximum 2000 characters.' });
 
         await db.query(`
             INSERT INTO post_comments (post_id, user_id, content) 
             VALUES ($1, $2, $3)
-        `, [id, req.user.userId, content]);
+        `, [id, req.user.userId, content.trim()]);
 
         res.status(201).json({ message: 'Comment added' });
     } catch (error) {
@@ -100,6 +153,10 @@ exports.addComment = async (req, res) => {
     }
 };
 
+/**
+ * DELETE /api/posts/comments/:commentId
+ * Delete a comment. Owner or admin can delete.
+ */
 exports.deleteComment = async (req, res) => {
     try {
         const { commentId } = req.params;
@@ -109,9 +166,11 @@ exports.deleteComment = async (req, res) => {
 
         const ownerId = check.rows[0].user_id;
 
-        // Admin privileges or owner
         if (['black_hat_admin', 'admin', 'editor_admin'].includes(req.user.role) || ownerId === req.user.userId) {
             await db.query('DELETE FROM post_comments WHERE id = $1', [commentId]);
+
+            await req.audit('COMMENT_DELETE', commentId, { postCommentOwner: ownerId });
+
             res.json({ message: 'Comment deleted' });
         } else {
             res.status(403).json({ error: 'Unauthorized to delete this comment' });
@@ -121,6 +180,10 @@ exports.deleteComment = async (req, res) => {
     }
 };
 
+/**
+ * DELETE /api/posts/:id
+ * Delete a post. Owner or admin can delete.
+ */
 exports.deletePost = async (req, res) => {
     try {
         const { id } = req.params;
@@ -131,7 +194,10 @@ exports.deletePost = async (req, res) => {
 
         if (['black_hat_admin', 'admin', 'editor_admin'].includes(req.user.role) || ownerId === req.user.userId) {
             await db.query('DELETE FROM posts WHERE id = $1', [id]);
-            res.json({ message: 'Post explicitly deleted' });
+
+            await req.audit('POST_DELETE', id, { postOwner: ownerId });
+
+            res.json({ message: 'Post deleted' });
         } else {
             res.status(403).json({ error: 'Unauthorized to delete this post' });
         }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, PieChart, Users, Filter, LayoutDashboard, Mail, Search, CheckCircle, PlusCircle, Trash2 } from 'lucide-react';
+import { Send, PieChart, Users, Filter, LayoutDashboard, Mail, Search, CheckCircle, PlusCircle, Trash2, Download, AlertCircle } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
 const AdminReviews = () => {
@@ -51,6 +51,29 @@ const AdminReviews = () => {
         } catch (error) {
             console.error('Failed to load analytics', error);
         }
+    };
+
+    const handleExportCSV = (requestId) => {
+        const token = localStorage.getItem('token');
+        const url = `${import.meta.env.VITE_API_URL}/reviews/admin/export/${requestId}`;
+        // Use fetch to download with auth header
+        fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(res => {
+                if (!res.ok) throw new Error('Export failed');
+                return res.blob();
+            })
+            .then(blob => {
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `review_export_${Date.now()}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(downloadUrl);
+                a.remove();
+                setStatus({ type: 'success', text: 'CSV exported successfully!' });
+            })
+            .catch(() => setStatus({ type: 'error', text: 'Failed to export CSV data.' }));
     };
 
     const addFilterGroup = () => {
@@ -403,11 +426,21 @@ const AdminReviews = () => {
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '1.5rem' }}>
                                                 <div>
                                                     <h2 style={{ fontSize: '1.8rem', marginBottom: '10px', lineHeight: '1.3' }}>{analyticsData.request.title}</h2>
-                                                    <div style={{ display: 'flex', gap: '15px', fontSize: '0.85rem' }}>
+                                                    <div style={{ display: 'flex', gap: '10px', fontSize: '0.85rem', flexWrap: 'wrap' }}>
                                                         <span style={{ padding: '4px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: '20px' }}>Dispatched {new Date(analyticsData.request.created_at).toLocaleDateString()}</span>
-                                                        <span style={{ padding: '4px 12px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '20px' }}>Collected {analyticsData.total_responses}</span>
+                                                        <span style={{ padding: '4px 12px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '20px' }}>{analyticsData.total_responses}/{analyticsData.total_sent} Responses</span>
+                                                        {analyticsData.pending > 0 && <span style={{ padding: '4px 12px', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', borderRadius: '20px' }}>{analyticsData.pending} Pending</span>}
                                                     </div>
                                                 </div>
+                                                {analyticsData.total_responses > 0 && (
+                                                    <button
+                                                        onClick={() => handleExportCSV(selectedRequest)}
+                                                        className="btn"
+                                                        style={{ padding: '8px 16px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '100px', border: '1px solid rgba(16, 185, 129, 0.2)', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+                                                    >
+                                                        <Download size={16} /> Export CSV
+                                                    </button>
+                                                )}
                                             </div>
 
                                             {analyticsData.total_responses === 0 ? (

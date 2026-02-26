@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { Users, Filter, Shield, AlertCircle, Search, ShieldCheck, Mail, BookOpen, Plus, X, MessageSquare, Send, Paperclip, MoreVertical, FileText, CheckCircle } from 'lucide-react';
+import { Users, Filter, Shield, AlertCircle, Search, ShieldCheck, Mail, BookOpen, Plus, X, MessageSquare, Send, Paperclip, MoreVertical, FileText, CheckCircle, Trash2, ChevronDown } from 'lucide-react';
 
 const AdminUsers = () => {
     const { user } = useAuth();
@@ -124,6 +124,28 @@ const AdminUsers = () => {
             setStatus({ type: 'error', text: 'Transmission failure for review request.' });
         } finally {
             setSending(false);
+        }
+    };
+
+    const handleRoleChange = async (targetUserId, newRole, userName) => {
+        if (!window.confirm(`Change ${userName}'s role to ${newRole.toUpperCase()}?`)) return;
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL}/admin/role`, { targetUserId, newRole });
+            setStatus({ type: 'success', text: `${userName}'s role updated to ${newRole.toUpperCase()}.` });
+            fetchAllUsers();
+        } catch (error) {
+            setStatus({ type: 'error', text: error.response?.data?.error || 'Failed to update role.' });
+        }
+    };
+
+    const handleDeleteUser = async (userId, userName) => {
+        if (!window.confirm(`⚠️ PERMANENTLY DELETE ${userName}? This action cannot be undone.`)) return;
+        try {
+            await axios.delete(`${import.meta.env.VITE_API_URL}/admin/user/${userId}`);
+            setStatus({ type: 'success', text: `${userName} has been permanently deleted.` });
+            fetchAllUsers();
+        } catch (error) {
+            setStatus({ type: 'error', text: error.response?.data?.error || 'Failed to delete user.' });
         }
     };
 
@@ -299,21 +321,43 @@ const AdminUsers = () => {
                                             )}
                                         </td>
                                         <td style={{ padding: '1.2rem', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
                                                 <button
                                                     onClick={() => openActionModal('message', [u])}
                                                     title="Send Direct Message"
                                                     style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
                                                 >
-                                                    <Mail size={18} />
+                                                    <Mail size={16} />
                                                 </button>
                                                 <button
                                                     onClick={() => openActionModal('review', [u])}
                                                     title="Send Review Request"
                                                     style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#f59e0b', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
                                                 >
-                                                    <FileText size={18} />
+                                                    <FileText size={16} />
                                                 </button>
+                                                {user?.role === 'black_hat_admin' && (
+                                                    <>
+                                                        <select
+                                                            value={u.role}
+                                                            onChange={(e) => handleRoleChange(u.id, e.target.value, u.full_name)}
+                                                            title="Change Role"
+                                                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '6px 8px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700' }}
+                                                        >
+                                                            <option value="student">Student</option>
+                                                            <option value="faculty">Faculty</option>
+                                                            <option value="editor_admin">Editor</option>
+                                                            <option value="admin">Admin</option>
+                                                        </select>
+                                                        <button
+                                                            onClick={() => handleDeleteUser(u.id, u.full_name)}
+                                                            title="Delete User"
+                                                            style={{ background: 'rgba(239,68,68,0.08)', border: 'none', color: '#ef4444', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
