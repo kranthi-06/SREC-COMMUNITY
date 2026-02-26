@@ -54,6 +54,7 @@ function AppContent() {
     return localStorage.getItem('theme') === 'dark';
   });
   const { user, loading, logout } = useAuth();
+  const location = useLocation();
 
   useEffect(() => {
     document.body.setAttribute('data-theme', darkMode ? 'dark' : 'light');
@@ -66,7 +67,7 @@ function AppContent() {
   };
 
   return (
-    <Router>
+    <>
       <ScrollToTop />
       <div className="app" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
         <div className="noise-overlay"></div>
@@ -259,15 +260,17 @@ function AppContent() {
           </div>
         </footer>
       </div>
-    </Router>
+    </>
   );
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
   );
 }
 
