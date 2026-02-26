@@ -266,18 +266,18 @@ const Community = () => {
                             )}
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ display: 'flex', gap: '15px' }}>
-                                    <label style={{ cursor: 'pointer', color: 'var(--text-light)', opacity: 0.7 }}>
+                                <div style={{ display: 'flex', gap: '20px' }}>
+                                    <label style={{ cursor: 'pointer', color: 'var(--text-light)', opacity: 0.9 }} title="Upload Image">
                                         <input type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => { setSelectedImage(e.target.files[0]); setSelectedVideo(null); }} />
-                                        <ImageIcon size={22} />
+                                        <ImageIcon size={24} />
                                     </label>
-                                    <label style={{ cursor: 'pointer', color: 'var(--text-light)', opacity: 0.7 }}>
+                                    <label style={{ cursor: 'pointer', color: 'var(--text-light)', opacity: 0.9 }} title="Upload Video">
                                         <input type="file" style={{ display: 'none' }} accept="video/*" onChange={(e) => { setSelectedVideo(e.target.files[0]); setSelectedImage(null); }} />
-                                        <Video size={22} />
+                                        <Video size={24} />
                                     </label>
-                                    <label style={{ cursor: 'pointer', color: 'var(--text-light)', opacity: 0.7 }}>
+                                    <label style={{ cursor: 'pointer', color: 'var(--text-light)', opacity: 0.9 }} title="Upload Document">
                                         <input type="file" style={{ display: 'none' }} accept=".pdf" onChange={(e) => setSelectedPdf(e.target.files[0])} />
-                                        <FileText size={22} />
+                                        <FileText size={24} />
                                     </label>
                                     <button
                                         type="button"
@@ -285,9 +285,10 @@ const Community = () => {
                                             const link = prompt('Enter URL string:');
                                             if (link) setNewPost({ ...newPost, link_url: link });
                                         }}
-                                        style={{ background: 'none', border: 'none', color: 'var(--text-light)', opacity: 0.7, cursor: 'pointer' }}
+                                        style={{ background: 'none', border: 'none', color: 'var(--text-light)', opacity: 0.9, cursor: 'pointer' }}
+                                        title="Add External Link"
                                     >
-                                        <LinkIcon size={22} />
+                                        <LinkIcon size={24} />
                                     </button>
                                 </div>
                                 <button
