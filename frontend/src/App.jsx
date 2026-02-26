@@ -128,14 +128,6 @@ function AppContent() {
               {!user ? (
                 <>
                   <li>
-                    <Link
-                      to="/auth/select-role"
-                      className={`nav-link ${location.pathname.startsWith('/auth') ? 'active' : ''}`}
-                    >
-                      Sign In
-                    </Link>
-                  </li>
-                  <li>
                     <Link to="/auth/select-role" className="btn btn-primary" style={{ padding: '8px 20px', fontSize: '0.85rem' }}>
                       Join SREC
                     </Link>
