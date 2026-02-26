@@ -31,6 +31,8 @@ import {
     ThumbsDown,
     Sparkles
 } from 'lucide-react';
+import { getImageUrl } from '../utils/imageUtils';
+
 
 const EventReviews = () => {
     const { eventName } = useParams();
@@ -172,11 +174,11 @@ const EventReviews = () => {
                     style={{ padding: '0', overflow: 'hidden', marginBottom: '3rem' }}
                 >
                     {/* Event image/video banner */}
-                    {eventData.media_url && (
+                    {eventData.attachment_url && (
                         <div style={{ position: 'relative' }}>
-                            {eventData.media_type === 'image' ? (
+                            {!(eventData.attachment_url.toLowerCase().endsWith('.mp4') || eventData.attachment_url.toLowerCase().endsWith('.mov')) ? (
                                 <img
-                                    src={eventData.media_url}
+                                    src={getImageUrl(eventData.attachment_url)}
                                     style={{
                                         width: '100%',
                                         height: '320px',
@@ -187,7 +189,7 @@ const EventReviews = () => {
                                 />
                             ) : (
                                 <video
-                                    src={eventData.media_url}
+                                    src={getImageUrl(eventData.attachment_url)}
                                     style={{
                                         width: '100%',
                                         height: '320px',
@@ -200,6 +202,7 @@ const EventReviews = () => {
                                     playsInline
                                 />
                             )}
+
                             {/* Gradient overlay on the image */}
                             <div
                                 style={{

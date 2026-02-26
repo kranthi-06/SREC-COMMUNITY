@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Calendar, Clock, MapPin, Tag, Download, Play, MessagesSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getImageUrl } from '../utils/imageUtils';
+
 
 const Events = () => {
     const { user } = useAuth();
@@ -96,10 +98,7 @@ const Events = () => {
                                     <div style={{ position: 'relative', height: '220px', background: 'rgba(0,0,0,0.5)' }}>
                                         {/* Using generic img tag if image or poster */}
                                         <img
-                                            src={(evt.attachment_url.startsWith('http') || evt.attachment_url.startsWith('data:'))
-                                                ? evt.attachment_url
-                                                : `${(import.meta.env.VITE_API_URL || '').replace(/\/api$/, '')}${evt.attachment_url}`
-                                            }
+                                            src={getImageUrl(evt.attachment_url)}
                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                             alt={evt.title}
                                             onError={(e) => {

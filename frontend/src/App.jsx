@@ -26,8 +26,11 @@ import Profile from './pages/Profile';
 import Inbox from './pages/Inbox';
 import Community from './pages/Community';
 import Events from './pages/Events';
-import BackgroundAnimation from './components/BackgroundAnimation';
+import EventReviews from './pages/EventReviews';
 import { AuthProvider, useAuth } from './context/AuthContext';
+
+
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { Moon, Sun, LogOut, User as UserIcon, LayoutDashboard, PenLine, Home as HomeIcon, History as HistoryIcon, Activity, Inbox as InboxIcon, MessagesSquare, CalendarDays } from 'lucide-react';
 
@@ -70,11 +73,9 @@ function AppContent() {
     <>
       <ScrollToTop />
       <div className="app" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-        <div className="noise-overlay"></div>
-        <div className="bg-mesh">
-          <div className="orb orb-ambient"></div>
-        </div>
-        <BackgroundAnimation />
+        {/* Transparent Navigation and Main Content */}
+
+
 
         {/* ========== NAVIGATION ========== */}
         <nav>
@@ -192,6 +193,8 @@ function AppContent() {
                   <Events />
                 </ProtectedRoute>
               } />
+              <Route path="/event/:eventName" element={<EventReviews />} />
+
               <Route path="/dashboard" element={
                 <ProtectedRoute adminOnly={true}>
                   <Dashboard />

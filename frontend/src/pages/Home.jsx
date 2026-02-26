@@ -18,6 +18,8 @@ import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 // Import icons — Eye is used for the "Check Review" button
 import { MessageSquare, BarChart3, ShieldCheck, Sparkles, ArrowRight, Activity, Zap, Eye, ChevronDown } from 'lucide-react';
+import { getImageUrl } from '../utils/imageUtils';
+
 
 /* ============================================
    FEATURE CARD COMPONENT
@@ -138,10 +140,7 @@ const EventsGrid = () => {
                     {event.attachment_url && (
                         <div style={{ overflow: 'hidden' }}>
                             <img
-                                src={(event.attachment_url.startsWith('http') || event.attachment_url.startsWith('data:'))
-                                    ? event.attachment_url
-                                    : `${(import.meta.env.VITE_API_URL || '').replace(/\/api$/, '')}${event.attachment_url}`
-                                }
+                                src={getImageUrl(event.attachment_url)}
                                 className="event-image"
                                 style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }}
                                 alt={event.title}

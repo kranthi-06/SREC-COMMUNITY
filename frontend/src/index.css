@@ -18,11 +18,12 @@
   --accent-gold: #C4A052;
   --accent-cream: #E8DCC8;
 
-  /* Dark theme base */
-  --bg-main: #080A06;
-  --bg-surface: #0E110C;
-  --bg-card: #111410;
-  --text-main: #E8E6E1;
+  /* Dark theme base - Pure Black */
+  --bg-main: #000000;
+  --bg-surface: #000000;
+  --bg-card: #050505;
+  --text-main: #FFFFFF;
+
   --text-muted: #8A8A82;
   --text-light: #B8B6AE;
 
@@ -63,12 +64,13 @@
   --transition-fast: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Light theme overrides */
+/* Light theme overrides - Pure White */
 [data-theme='light'] {
-  --bg-main: #F5F3EE;
-  --bg-surface: #FFFDF8;
-  --bg-card: #FFFFFF;
-  --text-main: #1A1C17;
+  --bg-main: #FFFFFF;
+  --bg-surface: #FFFFFF;
+  --bg-card: #FAFAFA;
+  --text-main: #000000;
+
   --text-muted: #6B6B63;
   --text-light: #8A8A82;
   --glass-bg: rgba(255, 253, 248, 0.7);
@@ -114,20 +116,7 @@ h4,
   padding: 0 2rem;
 }
 
-/* ============================================
-   NOISE OVERLAY — subtle texture grain
-   ============================================ */
-.noise-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.025;
-  z-index: 9999;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-}
+
 
 /* ============================================
    GRADIENT TEXT — Nature-inspired gradient
@@ -697,106 +686,11 @@ nav {
 
 .nav-pill:hover {
   background: var(--accent-green) !important;
-  color: white !important;
+
 }
 
-/* ============================================
-   BACKGROUND SYSTEM — Clean, Minimal
-   ============================================ */
-.bg-mesh {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -2;
-  background: var(--bg-main);
-  overflow: hidden;
-}
 
-/* Ambient orb — subtle olive/green wash */
-.orb-ambient {
-  position: absolute;
-  width: 1000px;
-  height: 1000px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(139, 154, 70, 0.07) 0%, rgba(107, 122, 61, 0.03) 40%, transparent 70%);
-  top: -300px;
-  right: -250px;
-  animation: ambientDrift 40s infinite alternate ease-in-out;
-  pointer-events: none;
-}
 
-.orb-ambient::before {
-  content: '';
-  position: absolute;
-  width: 800px;
-  height: 800px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(196, 160, 82, 0.06) 0%, rgba(139, 154, 70, 0.03) 40%, transparent 70%);
-  bottom: -900px;
-  left: -400px;
-  animation: ambientDrift2 50s infinite alternate ease-in-out;
-}
-
-.orb-ambient::after {
-  content: '';
-  position: absolute;
-  width: 600px;
-  height: 600px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(156, 175, 136, 0.05) 0%, transparent 60%);
-  top: 500px;
-  left: 400px;
-  animation: ambientDrift 35s infinite alternate-reverse ease-in-out;
-}
-
-[data-theme='light'] .orb-ambient {
-  background: radial-gradient(circle, rgba(139, 154, 70, 0.04) 0%, rgba(107, 122, 61, 0.02) 40%, transparent 70%);
-}
-
-[data-theme='light'] .orb-ambient::before {
-  background: radial-gradient(circle, rgba(196, 160, 82, 0.03) 0%, rgba(139, 154, 70, 0.02) 40%, transparent 70%);
-}
-
-@keyframes ambientDrift {
-  0% {
-    transform: translate(0, 0) scale(1);
-  }
-
-  50% {
-    transform: translate(-120px, 180px) scale(1.15);
-  }
-
-  100% {
-    transform: translate(80px, -60px) scale(0.9);
-  }
-}
-
-@keyframes ambientDrift2 {
-  0% {
-    transform: translate(0, 0) scale(1);
-  }
-
-  50% {
-    transform: translate(150px, -100px) scale(1.2);
-  }
-
-  100% {
-    transform: translate(-80px, 50px) scale(0.85);
-  }
-}
-
-/* Particle canvas layer */
-.bg-particles {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  pointer-events: none;
-}
 
 /* Main content above backgrounds */
 main {
@@ -804,24 +698,7 @@ main {
   z-index: 10;
 }
 
-/* Blob backgrounds */
-.bg-blob {
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, var(--accent-green) 0%, transparent 70%);
-  filter: blur(100px);
-  opacity: 0.08;
-  z-index: -1;
-  pointer-events: none;
-  border-radius: 50%;
-}
 
-.blob-1 {
-  top: -100px;
-  right: -100px;
-  animation: ambientDrift 20s infinite alternate;
-}
 
 /* ============================================
    EVENT MANAGEMENT MEDIA STYLES
@@ -858,22 +735,7 @@ main {
   border-color: var(--accent-green);
 }
 
-/* Dot grid pattern overlay — subtle */
-.bg-mesh::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: radial-gradient(circle, rgba(139, 154, 70, 0.06) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
-}
 
-[data-theme='light'] .bg-mesh::after {
-  background-image: radial-gradient(circle, rgba(26, 28, 23, 0.04) 1px, transparent 1px);
-}
 
 /* ============================================
    SCROLLBAR
@@ -928,6 +790,9 @@ main {
 @keyframes fadeInUp {
   0% {
     opacity: 0;
+
+
+
     transform: translateY(30px);
   }
 
@@ -959,6 +824,9 @@ main {
   content: '';
   position: absolute;
   bottom: -2px;
+
+
+
   left: 0;
   width: 0;
   height: 2px;

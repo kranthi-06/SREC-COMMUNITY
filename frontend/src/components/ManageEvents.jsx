@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Link as LinkIcon, Film, Image as ImageIcon, X, Send, Upload, Calendar, Clock } from 'lucide-react';
+import { getImageUrl } from '../utils/imageUtils';
+
 
 const ManageEvents = () => {
     const fileInputRef = useRef(null);
@@ -308,7 +310,7 @@ const ManageEvents = () => {
                         >
                             {event.attachment_url && (
                                 <img
-                                    src={event.attachment_url.startsWith('http') ? event.attachment_url : `${import.meta.env.VITE_API_URL.replace('/api', '')}${event.attachment_url}`}
+                                    src={getImageUrl(event.attachment_url)}
                                     style={{ width: '100%', height: '180px', objectFit: 'cover' }}
                                     alt={event.title}
                                 />

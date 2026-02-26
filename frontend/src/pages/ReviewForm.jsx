@@ -4,6 +4,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Star, Layout, MessageCircle, AlertCircle, Calendar, Clock, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getImageUrl } from '../utils/imageUtils';
+
 
 const ReviewForm = () => {
     const location = useLocation();
@@ -102,7 +104,6 @@ const ReviewForm = () => {
 
     return (
         <div className="container" style={{ padding: '4rem 0' }}>
-            <div className="bg-blob blob-1"></div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '3rem', alignItems: 'start' }}>
                 <motion.div
@@ -124,13 +125,14 @@ const ReviewForm = () => {
                                     className="glass-card"
                                     style={{ padding: '0', overflow: 'hidden', border: '1px solid var(--primary-light)' }}
                                 >
-                                    {selectedEventData.media_url && (
-                                        selectedEventData.media_type === 'image' ? (
-                                            <img src={selectedEventData.media_url} style={{ width: '100%', height: '220px', objectFit: 'cover' }} alt={selectedEventData.title} />
+                                    {selectedEventData.attachment_url && (
+                                        !(selectedEventData.attachment_url.toLowerCase().endsWith('.mp4') || selectedEventData.attachment_url.toLowerCase().endsWith('.mov')) ? (
+                                            <img src={getImageUrl(selectedEventData.attachment_url)} style={{ width: '100%', height: '220px', objectFit: 'cover' }} alt={selectedEventData.title} />
                                         ) : (
-                                            <video src={selectedEventData.media_url} style={{ width: '100%', height: '220px', objectFit: 'cover' }} controls />
+                                            <video src={getImageUrl(selectedEventData.attachment_url)} style={{ width: '100%', height: '220px', objectFit: 'cover' }} controls />
                                         )
                                     )}
+
                                     <div style={{ padding: '1.5rem' }}>
                                         <div style={{ marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.8rem' }}>
                                             <span style={{ fontSize: '0.7rem', fontWeight: '800', background: 'var(--primary)', color: 'white', padding: '4px 12px', borderRadius: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
