@@ -18,7 +18,7 @@ exports.getAllEvents = async (req, res) => {
                    e.status, e.attachment_url, e.category, e.event_type, e.created_at,
                    u.full_name as creator_name
             FROM campus_events e
-            JOIN users u ON e.creator_id = u.id
+            LEFT JOIN users u ON e.creator_id = u.id
             ORDER BY e.event_date DESC
         `);
 
@@ -71,7 +71,9 @@ exports.createEvent = async (req, res) => {
         let attachment_url = media_url || null;
 
         if (req.file) {
-            attachment_url = `/uploads/${req.file.filename}`;
+            const b64 = req.file.buffer.toString('base64');
+            const mime = req.file.mimetype;
+            attachment_url = `data:${mime};base64,${b64}`;
         }
 
         if (!title || !description || !event_date) {

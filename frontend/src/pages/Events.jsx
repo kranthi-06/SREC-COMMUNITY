@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Calendar, Clock, MapPin, Tag, Download, Play, MessagesSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getImageUrl } from '../utils/imageUtils';
+
 
 const Events = () => {
     const { user } = useAuth();
@@ -95,7 +97,16 @@ const Events = () => {
                                 {evt.attachment_url ? (
                                     <div style={{ position: 'relative', height: '220px', background: 'rgba(0,0,0,0.5)' }}>
                                         {/* Using generic img tag if image or poster */}
-                                        <img src={`${import.meta.env.VITE_API_URL.replace('/api', '')}${evt.attachment_url}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={evt.title} />
+                                        <img
+                                            src={getImageUrl(evt.attachment_url)}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            alt={evt.title}
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = 'https://via.placeholder.com/600x400?text=Image+Unavailable';
+                                                e.target.style.opacity = '0.5';
+                                            }}
+                                        />
                                     </div>
                                 ) : (
                                     <div style={{ height: '220px', background: 'linear-gradient(135deg, var(--glass-bg), rgba(139, 92, 246, 0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

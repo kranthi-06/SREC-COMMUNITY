@@ -18,6 +18,8 @@ import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 // Import icons — Eye is used for the "Check Review" button
 import { MessageSquare, BarChart3, ShieldCheck, Sparkles, ArrowRight, Activity, Zap, Eye, ChevronDown } from 'lucide-react';
+import { getImageUrl } from '../utils/imageUtils';
+
 
 /* ============================================
    FEATURE CARD COMPONENT
@@ -135,23 +137,19 @@ const EventsGrid = () => {
                     style={{ padding: '0', overflow: 'hidden' }}
                 >
                     {/* Event image/video with zoom-on-hover effect */}
-                    {event.media_url && (
+                    {event.attachment_url && (
                         <div style={{ overflow: 'hidden' }}>
-                            {event.media_type === 'image' ? (
-                                <img
-                                    src={event.media_url}
-                                    className="event-image"
-                                    style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }}
-                                    alt={event.title}
-                                />
-                            ) : (
-                                <video
-                                    src={event.media_url}
-                                    className="event-image"
-                                    style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }}
-                                    muted autoPlay loop playsInline
-                                />
-                            )}
+                            <img
+                                src={getImageUrl(event.attachment_url)}
+                                className="event-image"
+                                style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }}
+                                alt={event.title}
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://via.placeholder.com/600x400?text=Image+Unavailable';
+                                    e.target.style.opacity = '0.5';
+                                }}
+                            />
                         </div>
                     )}
                     <div style={{ padding: '1.5rem' }}>
