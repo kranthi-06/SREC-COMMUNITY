@@ -17,7 +17,7 @@ const db = require('../db');
 exports.getAllUsers = async (req, res) => {
     try {
         const { role, department, year } = req.query;
-        let query = 'SELECT id, full_name, email, role, department, batch_year, phone_number, is_verified, created_at FROM users WHERE role != \'black_hat_admin\'';
+        let query = 'SELECT id, full_name, email, role, department, batch_year, phone_number, is_verified, created_at FROM users WHERE 1=1';
         let values = [];
         let count = 1;
 
@@ -193,7 +193,7 @@ exports.getStats = async (req, res) => {
                     COUNT(*) FILTER (WHERE role = 'faculty') as faculty,
                     COUNT(*) FILTER (WHERE role IN ('admin', 'editor_admin')) as admins,
                     COUNT(*) as total
-                FROM users WHERE role != 'black_hat_admin'
+                FROM users
             `),
             db.query('SELECT COUNT(*) as total FROM review_requests'),
             db.query('SELECT COUNT(*) as total FROM posts'),

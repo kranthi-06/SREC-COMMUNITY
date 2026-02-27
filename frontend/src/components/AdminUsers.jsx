@@ -66,7 +66,8 @@ const AdminUsers = () => {
             const matchesGroups = filterGroups.some(group => {
                 const roleMatch = !group.role ||
                     u.role === group.role ||
-                    (group.role === 'admin' && u.role === 'black_hat_admin');
+                    (group.role === 'admin' && u.role === 'black_hat_admin') ||
+                    (group.role === 'black_hat_admin' && u.role === 'black_hat_admin');
                 const deptMatch = !group.department || u.department === group.department;
                 const yearMatch = !group.year || u.batch_year == group.year;
 
@@ -205,6 +206,7 @@ const AdminUsers = () => {
                                 <option value="faculty">Faculty</option>
                                 <option value="teacher">Teachers</option>
                                 <option value="admin">Admins</option>
+                                <option value="black_hat_admin">Super Admins (Black Hat)</option>
                             </select>
                             <select
                                 className="form-input-wrapper"
@@ -306,11 +308,11 @@ const AdminUsers = () => {
                                         <td style={{ padding: '1.2rem' }}>
                                             <span style={{
                                                 padding: '4px 10px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '900', textTransform: 'uppercase',
-                                                background: u.role === 'admin' ? 'rgba(239,68,68,0.1)' : 'rgba(59,130,246,0.1)',
-                                                color: u.role === 'admin' ? '#ef4444' : '#60a5fa',
-                                                border: `1px solid ${u.role === 'admin' ? 'rgba(239,68,68,0.2)' : 'rgba(59,130,246,0.2)'}`
+                                                background: u.role === 'admin' ? 'rgba(239,68,68,0.1)' : u.role === 'black_hat_admin' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(59,130,246,0.1)',
+                                                color: u.role === 'admin' ? '#ef4444' : u.role === 'black_hat_admin' ? '#8b5cf6' : '#60a5fa',
+                                                border: `1px solid ${u.role === 'admin' ? 'rgba(239,68,68,0.2)' : u.role === 'black_hat_admin' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(59,130,246,0.2)'}`
                                             }}>
-                                                {u.role}
+                                                {u.role === 'black_hat_admin' ? 'Super Admin' : u.role}
                                             </span>
                                         </td>
                                         <td style={{ padding: '1.2rem' }}>
