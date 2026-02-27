@@ -96,6 +96,13 @@ const runMigration = async () => {
         `);
         console.log('✅ users.batch_year column ensured');
 
+        // 6. Fix review_responses column sizes (department names can be long)
+        await pool.query(`
+            ALTER TABLE review_responses ALTER COLUMN department TYPE varchar(255);
+            ALTER TABLE review_responses ALTER COLUMN year_string TYPE varchar(100);
+        `);
+        console.log('✅ review_responses column sizes fixed');
+
         console.log('\n🎉 Production Hardening Migration COMPLETE!');
         process.exit(0);
     } catch (error) {
