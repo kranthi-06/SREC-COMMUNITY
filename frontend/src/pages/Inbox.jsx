@@ -25,17 +25,25 @@ const Inbox = () => {
 
     const fetchInbox = async () => {
         try {
-            const [msgRes, revRes] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_API_URL}/messages`),
-                axios.get(`${import.meta.env.VITE_API_URL}/reviews/student/inbox`)
-            ]);
+            // Fetch messages — always
+            const msgRes = await axios.get(`${import.meta.env.VITE_API_URL}/messages`);
             setMessages(msgRes.data);
-            setReviews(revRes.data);
         } catch (error) {
-            console.error('Error fetching inbox:', error);
-        } finally {
-            setLoading(false);
+            console.error('Error fetching messages:', error);
         }
+
+        // Fetch reviews — only for students (admins don't receive review forms)
+        const isStudent = user && !['black_hat_admin', 'admin', 'editor_admin'].includes(user.role);
+        if (isStudent) {
+            try {
+                const revRes = await axios.get(`${import.meta.env.VITE_API_URL}/reviews/student/inbox`);
+                setReviews(revRes.data);
+            } catch (error) {
+                console.error('Error fetching reviews:', error);
+            }
+        }
+
+        setLoading(false);
     };
 
     const handleSendMessage = async (e) => {
