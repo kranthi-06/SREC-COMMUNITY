@@ -105,7 +105,7 @@ const BackgroundAnimation = () => {
         const resize = () => {
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
             width = window.innerWidth;
-            height = document.documentElement.scrollHeight || window.innerHeight;
+            height = window.innerHeight;
             canvas.width = width * dpr;
             canvas.height = height * dpr;
             canvas.style.width = width + 'px';
@@ -422,20 +422,11 @@ const BackgroundAnimation = () => {
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseleave', handleMouseLeave);
 
-        const resizeObserver = new ResizeObserver(() => {
-            const newHeight = document.documentElement.scrollHeight;
-            if (Math.abs(newHeight - height) > 50) {
-                resize();
-            }
-        });
-        resizeObserver.observe(document.body);
-
         return () => {
             if (animationRef.current) cancelAnimationFrame(animationRef.current);
             window.removeEventListener('resize', resize);
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseleave', handleMouseLeave);
-            resizeObserver.disconnect();
         };
     }, [createElements, getThemeColors]);
 
