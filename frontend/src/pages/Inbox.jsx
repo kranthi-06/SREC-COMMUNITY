@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Inbox as InboxIcon, Send, Clock, User as UserIcon, AlertCircle, FileText, CheckCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Inbox = () => {
+    const { user } = useAuth();
     const [messages, setMessages] = useState([]);
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -24,7 +26,7 @@ const Inbox = () => {
     const fetchInbox = async () => {
         try {
             const [msgRes, revRes] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_API_URL}/profile/messages`),
+                axios.get(`${import.meta.env.VITE_API_URL}/messages`),
                 axios.get(`${import.meta.env.VITE_API_URL}/reviews/student/inbox`)
             ]);
             setMessages(msgRes.data);
@@ -40,7 +42,7 @@ const Inbox = () => {
         e.preventDefault();
         if (!replyText.trim()) return;
         try {
-            await axios.post(`${import.meta.env.VITE_API_URL}/profile/message/admin`, { message_text: replyText });
+            await axios.post(`${import.meta.env.VITE_API_URL}/messages/reply`, { message_text: replyText });
             setReplyText('');
             fetchInbox();
         } catch (error) {
@@ -130,10 +132,15 @@ const Inbox = () => {
                                 {loading ? <div className="loader" style={{ margin: 'auto' }}></div> : messages.length === 0 ? (
                                     <div style={{ textAlign: 'center', color: 'var(--text-muted)', margin: 'auto' }}>No messages available.</div>
                                 ) : (
-                                    messages.map((msg, i) => {
-                                        const isMyMessage = msg.sender_id === msg.currentUser;
+                                    messages.filter(msg => msg.item_type !== 'notification').map((msg, i) => {
+                                        const isMyMessage = user && msg.sender_name === user.full_name;
                                         return (
-                                            <div key={i} style={{ alignSelf: isMyMessage ? 'flex-end' : 'flex-start', maxWidth: '70%' }}>
+                                            <div key={msg.id || i} style={{ alignSelf: isMyMessage ? 'flex-end' : 'flex-start', maxWidth: '70%' }}>
+                                                {!isMyMessage && (
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--primary)', marginBottom: '4px', fontWeight: '700' }}>
+                                                        {msg.sender_name} ({msg.sender_role})
+                                                    </div>
+                                                )}
                                                 <div style={{
                                                     background: isMyMessage ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
                                                     padding: '12px 18px',
@@ -143,6 +150,11 @@ const Inbox = () => {
                                                     color: isMyMessage ? 'white' : 'var(--text-main)'
                                                 }}>
                                                     {msg.message_text}
+                                                    {msg.file_url && (
+                                                        <div style={{ marginTop: '8px' }}>
+                                                            <a href={msg.file_url} target="_blank" rel="noopener noreferrer" style={{ color: isMyMessage ? '#ddd' : 'var(--primary)', fontSize: '0.85rem' }}>📎 View Attachment</a>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '5px', textAlign: isMyMessage ? 'right' : 'left' }}>
                                                     {new Date(msg.created_at).toLocaleString()}
@@ -154,20 +166,27 @@ const Inbox = () => {
                                 <div ref={messagesEndRef} />
                             </div>
 
-                            <div style={{ padding: '1.5rem', borderTop: '1px solid var(--glass-border)', background: 'var(--glass-bg)' }}>
-                                <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '10px' }}>
-                                    <input
-                                        type="text"
-                                        placeholder="Type a message to the Administration..."
-                                        value={replyText}
-                                        onChange={(e) => setReplyText(e.target.value)}
-                                        style={{ flex: 1, padding: '12px 15px', borderRadius: '30px', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.3)', color: 'white' }}
-                                    />
-                                    <button type="submit" className="btn btn-primary" style={{ padding: '12px', borderRadius: '50%' }}>
-                                        <Send size={18} />
-                                    </button>
-                                </form>
-                            </div>
+                            {/* Reply form - Only visible to admins */}
+                            {user && ['black_hat_admin', 'admin', 'editor_admin'].includes(user.role) ? (
+                                <div style={{ padding: '1.5rem', borderTop: '1px solid var(--glass-border)', background: 'var(--glass-bg)' }}>
+                                    <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '10px' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="Reply to this conversation..."
+                                            value={replyText}
+                                            onChange={(e) => setReplyText(e.target.value)}
+                                            style={{ flex: 1, padding: '12px 15px', borderRadius: '30px', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.3)', color: 'white' }}
+                                        />
+                                        <button type="submit" className="btn btn-primary" style={{ padding: '12px', borderRadius: '50%' }}>
+                                            <Send size={18} />
+                                        </button>
+                                    </form>
+                                </div>
+                            ) : (
+                                <div style={{ padding: '1rem 2rem', borderTop: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.15)', textAlign: 'center' }}>
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>📩 Read-only inbox — messages from administration will appear here.</span>
+                                </div>
+                            )}
                         </>
                     )}
 

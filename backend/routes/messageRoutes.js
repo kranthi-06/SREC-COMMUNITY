@@ -43,6 +43,7 @@ const upload = multer({
 
 router.get('/', protect, messageController.getInbox);
 router.post('/send', protect, adminOnly, upload.single('attachment'), messageController.sendMessage);
+router.post('/reply', protect, adminOnly, messageController.replyToAdmin);
 router.put('/notifications/:id/read', protect, messageController.markNotificationRead);
 
 module.exports = router;

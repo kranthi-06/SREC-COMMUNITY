@@ -127,3 +127,48 @@ exports.markNotificationRead = async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 };
+
+/**
+ * POST /api/messages/reply
+ * Admin replies from inbox — sends to all other admin-level users.
+ * Only accessible by admin/black_hat_admin/editor_admin.
+ */
+exports.replyToAdmin = async (req, res) => {
+    try {
+        const { message_text } = req.body;
+        const senderId = req.user.userId;
+
+        if (!message_text || !message_text.trim()) {
+            return res.status(400).json({ error: 'Message text is required.' });
+        }
+
+        // Find all other admin-level users (excluding the sender)
+        const recipients = await db.query(
+            `SELECT id FROM users WHERE role IN ('admin', 'black_hat_admin', 'editor_admin') AND id != $1`,
+            [senderId]
+        );
+
+        if (recipients.rows.length === 0) {
+            return res.status(400).json({ error: 'No other administrators found to receive the message.' });
+        }
+
+        // Insert message for each recipient
+        for (const recipient of recipients.rows) {
+            await db.query(`
+                INSERT INTO messages (sender_id, receiver_id, message_text)
+                VALUES ($1, $2, $3)
+            `, [senderId, recipient.id, message_text.trim()]);
+        }
+
+        // Audit: Admin Reply
+        await req.audit('MESSAGE_REPLY', null, {
+            recipientCount: recipients.rows.length,
+            messagePreview: message_text.substring(0, 100)
+        });
+
+        res.status(201).json({ message: `Reply sent to ${recipients.rows.length} administrators.` });
+    } catch (error) {
+        console.error('Error sending reply:', error);
+        res.status(500).json({ error: 'Server error sending reply' });
+    }
+};
