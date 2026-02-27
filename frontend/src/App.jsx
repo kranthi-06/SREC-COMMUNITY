@@ -17,7 +17,7 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import SelectRole from './pages/SelectRole';
-import History from './pages/History';
+
 import Profile from './pages/Profile';
 import Inbox from './pages/Inbox';
 import Community from './pages/Community';
@@ -27,7 +27,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Moon, Sun, LogOut, User as UserIcon, LayoutDashboard,
-  Home as HomeIcon, History as HistoryIcon, Activity,
+  Home as HomeIcon, Activity,
   Inbox as InboxIcon, MessagesSquare, CalendarDays,
   Menu, X, Shield
 } from 'lucide-react';
@@ -161,11 +161,6 @@ function AppContent() {
                           <LayoutDashboard size={18} /> <span>Dashboard</span>
                         </Link>
                       </li>
-                      <li>
-                        <Link to="/history" className={`nav-link ${location.pathname === '/history' ? 'active' : ''}`} id="nav-history">
-                          <HistoryIcon size={18} /> <span>History</span>
-                        </Link>
-                      </li>
                     </>
                   )}
                 </>
@@ -277,9 +272,7 @@ function AppContent() {
                           <Link to="/dashboard" className="mobile-menu-link">
                             <LayoutDashboard size={18} /> Dashboard
                           </Link>
-                          <Link to="/history" className="mobile-menu-link">
-                            <HistoryIcon size={18} /> History
-                          </Link>
+
                         </>
                       )}
                       <div className="mobile-menu-divider"></div>
@@ -337,11 +330,7 @@ function AppContent() {
                     <Inbox />
                   </ProtectedRoute>
                 } />
-                <Route path="/history" element={
-                  <ProtectedRoute adminOnly={true}>
-                    <History />
-                  </ProtectedRoute>
-                } />
+
 
                 {/* 404 Catch-all */}
                 <Route path="*" element={

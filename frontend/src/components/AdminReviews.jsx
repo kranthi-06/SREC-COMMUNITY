@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import Papa from 'papaparse';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, PieChart, Users, Filter, LayoutDashboard, Mail, Search, CheckCircle, PlusCircle, Trash2, Download, AlertCircle } from 'lucide-react';
+import { Send, PieChart, Users, Filter, LayoutDashboard, Mail, Search, CheckCircle, PlusCircle, Trash2, Download, AlertCircle, Upload, Link2, FileSpreadsheet, Loader2, Brain, Eye, X, RefreshCw } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import SentimentDashboard from './SentimentDashboard';
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const AdminReviews = () => {
     const [viewMode, setViewMode] = useState('create'); // 'create' or 'analytics'
@@ -24,17 +28,29 @@ const AdminReviews = () => {
     const [analyticsData, setAnalyticsData] = useState(null);
     const [selectedRequest, setSelectedRequest] = useState(null);
 
+    // Import States
+    const [importMode, setImportMode] = useState('none'); // 'none', 'csv', 'sheets'
+    const [importTitle, setImportTitle] = useState('');
+    const [sheetsUrl, setSheetsUrl] = useState('');
+    const [csvFile, setCsvFile] = useState(null);
+    const [csvPreview, setCsvPreview] = useState(null);
+    const [importing, setImporting] = useState(false);
+    const [datasets, setDatasets] = useState([]);
+    const [selectedDatasetId, setSelectedDatasetId] = useState(null);
+    const fileInputRef = useRef(null);
+
     const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6', '#6366f1', '#ec4899'];
 
     useEffect(() => {
         if (viewMode === 'analytics') {
             fetchRequests();
         }
+        fetchDatasets();
     }, [viewMode]);
 
     const fetchRequests = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/reviews/admin/requests`);
+            const res = await axios.get(`${API_URL}/reviews/admin/requests`);
             setRequests(res.data);
             if (res.data.length > 0 && !selectedRequest) {
                 fetchAnalytics(res.data[0].id);
@@ -44,10 +60,117 @@ const AdminReviews = () => {
         }
     };
 
+    const fetchDatasets = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/import/datasets`);
+            setDatasets(res.data);
+        } catch (error) {
+            console.error('Failed to fetch imported datasets');
+        }
+    };
+
+    const handleCSVFileSelect = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setCsvFile(file);
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+                setCsvPreview({
+                    columns: results.meta.fields || [],
+                    data: results.data,
+                    preview: results.data.slice(0, 5)
+                });
+            },
+            error: () => {
+                setStatus({ type: 'error', text: 'Failed to parse CSV file.' });
+            }
+        });
+    };
+
+    const handleImportCSV = async () => {
+        if (!importTitle.trim()) {
+            setStatus({ type: 'error', text: 'Please enter a title for this import.' });
+            return;
+        }
+        if (!csvPreview || !csvPreview.data.length) {
+            setStatus({ type: 'error', text: 'Please select a valid CSV file.' });
+            return;
+        }
+        setImporting(true);
+        setStatus({ type: '', text: '' });
+        try {
+            const res = await axios.post(`${API_URL}/import/upload-csv`, {
+                title: importTitle,
+                csvData: csvPreview.data,
+                columns: csvPreview.columns,
+                source_type: 'csv'
+            });
+            setStatus({ type: 'success', text: res.data.message });
+            setImportMode('none');
+            setImportTitle('');
+            setCsvFile(null);
+            setCsvPreview(null);
+            fetchDatasets();
+            // Auto-open the new dataset
+            if (res.data.datasetId) {
+                setSelectedDatasetId(res.data.datasetId);
+            }
+        } catch (error) {
+            setStatus({ type: 'error', text: error.response?.data?.error || 'Failed to import CSV' });
+        } finally {
+            setImporting(false);
+        }
+    };
+
+    const handleImportSheets = async () => {
+        if (!importTitle.trim()) {
+            setStatus({ type: 'error', text: 'Please enter a title for this import.' });
+            return;
+        }
+        if (!sheetsUrl.trim()) {
+            setStatus({ type: 'error', text: 'Please enter a Google Sheets URL.' });
+            return;
+        }
+        setImporting(true);
+        setStatus({ type: '', text: '' });
+        try {
+            const res = await axios.post(`${API_URL}/import/google-sheets`, {
+                title: importTitle,
+                sheetsUrl: sheetsUrl
+            });
+            setStatus({ type: 'success', text: res.data.message });
+            setImportMode('none');
+            setImportTitle('');
+            setSheetsUrl('');
+            fetchDatasets();
+            if (res.data.datasetId) {
+                setSelectedDatasetId(res.data.datasetId);
+            }
+        } catch (error) {
+            setStatus({ type: 'error', text: error.response?.data?.error || 'Failed to import Google Sheets' });
+        } finally {
+            setImporting(false);
+        }
+    };
+
+    const handleDeleteDataset = async (id) => {
+        if (!window.confirm('Delete this imported dataset? This cannot be undone.')) return;
+        try {
+            await axios.delete(`${API_URL}/import/dataset/${id}`);
+            setDatasets(datasets.filter(d => d.id !== id));
+            if (selectedDatasetId === id) setSelectedDatasetId(null);
+            setStatus({ type: 'success', text: 'Dataset deleted successfully.' });
+        } catch (error) {
+            setStatus({ type: 'error', text: 'Failed to delete dataset.' });
+        }
+    };
+
     const fetchAnalytics = async (requestId) => {
         setSelectedRequest(requestId);
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/reviews/admin/analytics/${requestId}`);
+            const res = await axios.get(`${API_URL}/reviews/admin/analytics/${requestId}`);
             setAnalyticsData(res.data);
         } catch (error) {
             console.error('Failed to load analytics', error);
@@ -56,7 +179,7 @@ const AdminReviews = () => {
 
     const handleExportCSV = (requestId) => {
         const token = localStorage.getItem('token');
-        const url = `${import.meta.env.VITE_API_URL}/reviews/admin/export/${requestId}`;
+        const url = `${API_URL}/reviews/admin/export/${requestId}`;
         // Use fetch to download with auth header
         fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
             .then(res => {
@@ -171,7 +294,7 @@ const AdminReviews = () => {
         }
 
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/reviews/admin/create`, {
+            const res = await axios.post(`${API_URL}/reviews/admin/create`, {
                 title: formTitle,
                 description: formDescription,
                 questions: finalQuestions,
@@ -229,6 +352,177 @@ const AdminReviews = () => {
                 <AnimatePresence mode="wait">
                     {viewMode === 'create' ? (
                         <motion.form key="create" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} onSubmit={handleSendRequest}>
+
+                            {/* ============================================ */}
+                            {/*    DATA IMPORT SECTION (CSV / Google Sheets)  */}
+                            {/* ============================================ */}
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(59, 130, 246, 0.04))',
+                                border: '1px solid rgba(139, 92, 246, 0.15)',
+                                borderRadius: '16px',
+                                padding: '1.5rem 2rem',
+                                marginBottom: '2.5rem'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: importMode !== 'none' ? '1.5rem' : '0' }}>
+                                    <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.05rem' }}>
+                                        <Brain size={20} color="#8b5cf6" />
+                                        Import Feedback Data for AI Analysis
+                                    </h3>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setImportMode(importMode === 'csv' ? 'none' : 'csv'); setCsvPreview(null); setCsvFile(null); }}
+                                            style={{
+                                                padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', gap: '6px',
+                                                fontWeight: '700', fontSize: '0.8rem',
+                                                background: importMode === 'csv' ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)',
+                                                border: `1px solid ${importMode === 'csv' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                                                color: importMode === 'csv' ? '#10b981' : 'var(--text-muted)'
+                                            }}
+                                        >
+                                            <Upload size={14} /> Upload CSV
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setImportMode(importMode === 'sheets' ? 'none' : 'sheets'); setSheetsUrl(''); }}
+                                            style={{
+                                                padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', gap: '6px',
+                                                fontWeight: '700', fontSize: '0.8rem',
+                                                background: importMode === 'sheets' ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)',
+                                                border: `1px solid ${importMode === 'sheets' ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                                                color: importMode === 'sheets' ? '#3b82f6' : 'var(--text-muted)'
+                                            }}
+                                        >
+                                            <Link2 size={14} /> Google Sheets
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <AnimatePresence>
+                                    {importMode !== 'none' && (
+                                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden' }}>
+                                            {/* Import Title */}
+                                            <div style={{ marginBottom: '1rem' }}>
+                                                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Dataset Title</label>
+                                                <input
+                                                    type="text"
+                                                    value={importTitle}
+                                                    onChange={(e) => setImportTitle(e.target.value)}
+                                                    placeholder="e.g., Spring 2026 Student Feedback Survey"
+                                                    style={{ width: '100%', padding: '12px 15px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white', fontSize: '0.95rem', fontWeight: '600' }}
+                                                />
+                                            </div>
+
+                                            {/* CSV Upload */}
+                                            {importMode === 'csv' && (
+                                                <div>
+                                                    <input
+                                                        ref={fileInputRef}
+                                                        type="file"
+                                                        accept=".csv"
+                                                        onChange={handleCSVFileSelect}
+                                                        style={{ display: 'none' }}
+                                                    />
+                                                    <div
+                                                        onClick={() => fileInputRef.current?.click()}
+                                                        style={{
+                                                            border: '2px dashed rgba(16,185,129,0.3)',
+                                                            borderRadius: '12px',
+                                                            padding: '2rem',
+                                                            textAlign: 'center',
+                                                            cursor: 'pointer',
+                                                            background: 'rgba(16,185,129,0.03)',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                    >
+                                                        <FileSpreadsheet size={32} color="#10b981" style={{ marginBottom: '8px' }} />
+                                                        <p style={{ margin: '0 0 4px', fontWeight: '700', color: '#10b981' }}>
+                                                            {csvFile ? csvFile.name : 'Click to upload CSV file'}
+                                                        </p>
+                                                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                            {csvPreview ? `${csvPreview.data.length} rows, ${csvPreview.columns.length} columns detected` : 'Supports .csv format'}
+                                                        </p>
+                                                    </div>
+
+                                                    {/* CSV Preview Table */}
+                                                    {csvPreview && (
+                                                        <div style={{ marginTop: '1rem', overflowX: 'auto', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                                            <div style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.3)', fontWeight: '700', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                                Preview (first 5 rows)
+                                                            </div>
+                                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                                                                <thead>
+                                                                    <tr>{csvPreview.columns.map(c => <th key={c} style={{ padding: '8px 10px', textAlign: 'left', background: 'rgba(0,0,0,0.2)', color: '#8b5cf6', fontWeight: '700', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{c}</th>)}</tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {csvPreview.preview.map((row, i) => (
+                                                                        <tr key={i}>{csvPreview.columns.map(c => <td key={c} style={{ padding: '6px 10px', color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.03)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row[c] || '—'}</td>)}</tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    )}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleImportCSV}
+                                                        disabled={importing || !csvPreview}
+                                                        style={{
+                                                            marginTop: '1rem', padding: '12px 28px', borderRadius: '10px',
+                                                            background: importing ? 'rgba(16,185,129,0.1)' : 'linear-gradient(135deg, #10b981, #059669)',
+                                                            border: 'none', color: 'white', fontWeight: '700', fontSize: '0.9rem',
+                                                            cursor: importing ? 'not-allowed' : 'pointer',
+                                                            display: 'flex', alignItems: 'center', gap: '8px',
+                                                            opacity: (!csvPreview || importing) ? 0.5 : 1
+                                                        }}
+                                                    >
+                                                        {importing ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Importing...</> : <><Brain size={16} /> Import & Analyze with AI</>}
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Google Sheets URL */}
+                                            {importMode === 'sheets' && (
+                                                <div>
+                                                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Google Sheets Link</label>
+                                                    <input
+                                                        type="url"
+                                                        value={sheetsUrl}
+                                                        onChange={(e) => setSheetsUrl(e.target.value)}
+                                                        placeholder="https://docs.google.com/spreadsheets/d/..."
+                                                        style={{ width: '100%', padding: '12px 15px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '8px', color: 'white', fontSize: '0.95rem' }}
+                                                    />
+                                                    <p style={{ margin: '8px 0 0', fontSize: '0.78rem', color: 'var(--text-muted)', opacity: 0.7 }}>
+                                                        ⚠️ Sheet must be publicly accessible (Share → Anyone with the link → Viewer)
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleImportSheets}
+                                                        disabled={importing || !sheetsUrl.trim()}
+                                                        style={{
+                                                            marginTop: '1rem', padding: '12px 28px', borderRadius: '10px',
+                                                            background: importing ? 'rgba(59,130,246,0.1)' : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                                                            border: 'none', color: 'white', fontWeight: '700', fontSize: '0.9rem',
+                                                            cursor: importing ? 'not-allowed' : 'pointer',
+                                                            display: 'flex', alignItems: 'center', gap: '8px',
+                                                            opacity: (!sheetsUrl.trim() || importing) ? 0.5 : 1
+                                                        }}
+                                                    >
+                                                        {importing ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Fetching & Analyzing...</> : <><Brain size={16} /> Fetch & Analyze with AI</>}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                            </div>
+
+                            {/* ============================================ */}
+                            {/*    ORIGINAL FORM BUILDER BELOW               */}
+                            {/* ============================================ */}
                             <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}><Users size={20} color="var(--primary)" /> Form Identity & Tracking</h3>
 
                             <div style={{ marginBottom: '2rem' }}>
@@ -423,112 +717,102 @@ const AdminReviews = () => {
 
                         // ANALYSIS VIEW
                         <motion.div key="analytics" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                            <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-                                <div style={{ width: '320px', flexShrink: 0 }}>
-                                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-muted)' }}><Filter size={16} /> Dispatched Forms</h3>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '600px', overflowY: 'auto', paddingRight: '10px' }}>
-                                        {requests.length === 0 ? <div style={{ opacity: 0.5, fontSize: '0.9rem' }}>No private forms dispatched yet.</div> :
-                                            requests.map(r => (
-                                                <div
-                                                    key={r.id}
-                                                    onClick={() => fetchAnalytics(r.id)}
-                                                    style={{
-                                                        background: selectedRequest === r.id ? 'var(--glass-bg)' : 'rgba(255,255,255,0.01)',
-                                                        border: `1px solid ${selectedRequest === r.id ? 'var(--primary)' : 'var(--glass-border)'}`,
-                                                        padding: '15px', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s',
-                                                        position: 'relative'
-                                                    }}
-                                                >
-                                                    <div style={{ fontWeight: '800', fontSize: '1rem', marginBottom: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: selectedRequest === r.id ? 'var(--primary)' : 'white' }}>{r.title}</div>
-                                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.questions?.length || 1} Questions</div>
-                                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '5px' }}>
-                                                        <span>{new Date(r.created_at).toLocaleDateString()}</span>
-                                                        <span style={{ color: 'var(--accent-green-light)', fontWeight: 'bold' }}>{r.total_responses}/{r.total_sent} Resp</span>
+                            {/* If a dataset is selected, show the Sentiment Dashboard full-width */}
+                            {selectedDatasetId ? (
+                                <SentimentDashboard
+                                    datasetId={selectedDatasetId}
+                                    onBack={() => { setSelectedDatasetId(null); fetchDatasets(); }}
+                                />
+                            ) : selectedRequest ? (
+                                <SentimentDashboard
+                                    requestId={selectedRequest}
+                                    onBack={() => { setSelectedRequest(null); setAnalyticsData(null); }}
+                                />
+                            ) : (
+                                <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+                                    <div style={{ width: '320px', flexShrink: 0 }}>
+                                        {/* Dispatched Forms Section */}
+                                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-muted)' }}><Filter size={16} /> Dispatched Forms</h3>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: datasets.length > 0 ? '350px' : '600px', overflowY: 'auto', paddingRight: '10px' }}>
+                                            {requests.length === 0 ? <div style={{ opacity: 0.5, fontSize: '0.9rem' }}>No private forms dispatched yet.</div> :
+                                                requests.map(r => (
+                                                    <div
+                                                        key={r.id}
+                                                        onClick={() => { setSelectedDatasetId(null); setAnalyticsData(null); setSelectedRequest(r.id); }}
+                                                        style={{
+                                                            background: 'rgba(255,255,255,0.01)',
+                                                            border: '1px solid var(--glass-border)',
+                                                            padding: '15px', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s',
+                                                            position: 'relative'
+                                                        }}
+                                                    >
+                                                        <div style={{ fontWeight: '800', fontSize: '1rem', marginBottom: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'white' }}>{r.title}</div>
+                                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.questions?.length || 1} Questions</div>
+                                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '5px' }}>
+                                                            <span>{new Date(r.created_at).toLocaleDateString()}</span>
+                                                            <span style={{ color: 'var(--accent-green-light)', fontWeight: 'bold' }}>{r.total_responses}/{r.total_sent} Resp</span>
+                                                        </div>
                                                     </div>
+                                                ))
+                                            }
+                                        </div>
+
+                                        {/* Imported Datasets Section */}
+                                        {datasets.length > 0 && (
+                                            <div style={{ marginTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1.5rem' }}>
+                                                <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Brain size={16} color="#8b5cf6" /> Imported Datasets
+                                                </h3>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto', paddingRight: '10px' }}>
+                                                    {datasets.map(ds => (
+                                                        <div
+                                                            key={ds.id}
+                                                            onClick={() => { setSelectedRequest(null); setAnalyticsData(null); setSelectedDatasetId(ds.id); }}
+                                                            style={{
+                                                                background: 'rgba(139, 92, 246, 0.04)',
+                                                                border: '1px solid rgba(139, 92, 246, 0.12)',
+                                                                padding: '15px', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s',
+                                                                position: 'relative'
+                                                            }}
+                                                        >
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '5px' }}>
+                                                                <div style={{ fontWeight: '800', fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'white', flex: 1, marginRight: '8px' }}>{ds.title}</div>
+                                                                <span style={{
+                                                                    padding: '3px 10px', borderRadius: '100px', fontSize: '0.7rem', fontWeight: '700', flexShrink: 0,
+                                                                    background: ds.status === 'complete' ? 'rgba(34,197,94,0.1)' : ds.status === 'error' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                                                                    color: ds.status === 'complete' ? '#22c55e' : ds.status === 'error' ? '#ef4444' : '#f59e0b',
+                                                                    border: `1px solid ${ds.status === 'complete' ? 'rgba(34,197,94,0.2)' : ds.status === 'error' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`
+                                                                }}>
+                                                                    {ds.status === 'complete' ? '✓ Analyzed' : ds.status === 'error' ? '✗ Error' : `⏳ ${Math.round((ds.analyzed_rows / ds.total_rows) * 100)}%`}
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <span>{ds.source_type === 'google_sheets' ? '📊 Google Sheets' : '📄 CSV'} · {ds.total_rows} rows</span>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                    <span>{new Date(ds.created_at).toLocaleDateString()}</span>
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleDeleteDataset(ds.id); }}
+                                                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px', opacity: 0.5 }}
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            ))
-                                        }
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div style={{ flex: 1, borderLeft: '1px solid var(--glass-border)', paddingLeft: '2rem', minHeight: '500px' }}>
+                                        <div style={{ textAlign: 'center', margin: '4rem 0', opacity: 0.5 }}>
+                                            <PieChart size={48} style={{ marginBottom: '1rem' }} /> <br />
+                                            Select a dispatched form or imported dataset to view the full sentiment analysis dashboard
+                                        </div>
                                     </div>
                                 </div>
-
-                                <div style={{ flex: 1, borderLeft: '1px solid var(--glass-border)', paddingLeft: '2rem', minHeight: '500px' }}>
-                                    {!analyticsData ? (
-                                        <div style={{ textAlign: 'center', margin: '4rem 0', opacity: 0.5 }}><PieChart size={48} style={{ marginBottom: '1rem' }} /> <br />Select a deployed form to view internal response analytics</div>
-                                    ) : (
-                                        <>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '1.5rem' }}>
-                                                <div>
-                                                    <h2 style={{ fontSize: '1.8rem', marginBottom: '10px', lineHeight: '1.3' }}>{analyticsData.request.title}</h2>
-                                                    <div style={{ display: 'flex', gap: '10px', fontSize: '0.85rem', flexWrap: 'wrap' }}>
-                                                        <span style={{ padding: '4px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: '20px' }}>Dispatched {new Date(analyticsData.request.created_at).toLocaleDateString()}</span>
-                                                        <span style={{ padding: '4px 12px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '20px' }}>{analyticsData.total_responses}/{analyticsData.total_sent} Responses</span>
-                                                        {analyticsData.pending > 0 && <span style={{ padding: '4px 12px', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', borderRadius: '20px' }}>{analyticsData.pending} Pending</span>}
-                                                    </div>
-                                                </div>
-                                                {analyticsData.total_responses > 0 && (
-                                                    <button
-                                                        onClick={() => handleExportCSV(selectedRequest)}
-                                                        className="btn"
-                                                        style={{ padding: '8px 16px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '100px', border: '1px solid rgba(16, 185, 129, 0.2)', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
-                                                    >
-                                                        <Download size={16} /> Export CSV
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            {analyticsData.total_responses === 0 ? (
-                                                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '4rem 2rem', textAlign: 'center', borderRadius: '12px' }}>
-                                                    <Mail size={48} opacity={0.2} style={{ marginBottom: '15px' }} />
-                                                    <h3 style={{ margin: 0 }}>Awaiting Student Deliveries</h3>
-                                                    <p style={{ opacity: 0.6 }}>No students have finalized this form from their inbox yet.</p>
-                                                </div>
-                                            ) : (
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
-                                                    {analyticsData.request.questions.map((q, idx) => {
-                                                        const distribution = analyticsData.distributions[q.id] || {};
-                                                        const chartData = Object.keys(distribution).map(key => ({
-                                                            name: key, value: distribution[key]
-                                                        }));
-
-                                                        return (
-                                                            <div key={q.id} style={{ background: 'rgba(0,0,0,0.2)', padding: '2rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                                <h4 style={{ fontSize: '1.1rem', marginBottom: '10px' }}>Q{idx + 1}. {q.text}</h4>
-                                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{q.type.replace('_', ' ')} Format</div>
-
-                                                                {chartData.length === 0 ? (
-                                                                    <div style={{ opacity: 0.5, fontStyle: 'italic' }}>No responses for this particular question yet.</div>
-                                                                ) : (
-                                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'center' }}>
-                                                                        <div style={{ height: '220px' }}>
-                                                                            <ResponsiveContainer width="100%" height="100%">
-                                                                                <RePieChart>
-                                                                                    <Pie data={chartData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value">
-                                                                                        {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                                                                    </Pie>
-                                                                                    <RechartsTooltip contentStyle={{ background: 'rgba(10,10,10,0.9)', border: '1px solid #333', borderRadius: '8px' }} />
-                                                                                    <Legend />
-                                                                                </RePieChart>
-                                                                            </ResponsiveContainer>
-                                                                        </div>
-                                                                        <div>
-                                                                            {chartData.sort((a, b) => b.value - a.value).map((d, i) => (
-                                                                                <div key={d.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 15px', background: 'rgba(255,255,255,0.02)', margin: '4px 0', borderRadius: '8px', borderLeft: `4px solid ${COLORS[i % COLORS.length]}` }}>
-                                                                                    <span style={{ fontWeight: '600', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.name}>{d.name}</span>
-                                                                                    <span style={{ fontSize: '1rem', fontWeight: '800' }}>{d.value} <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>votes</span></span>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-                            </div>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>

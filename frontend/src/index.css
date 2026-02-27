@@ -825,6 +825,16 @@ main {
   }
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Gentle fade in */
 @keyframes fadeInUp {
   0% {
@@ -1151,4 +1161,277 @@ main {
   50% {
     transform: translateY(5px);
   }
+}
+
+/* ============================================
+   LIGHT THEME — Comprehensive Text Visibility Fixes
+   Overrides hardcoded inline color: 'white' / dark backgrounds
+   across ALL components to ensure readability in light mode.
+   ============================================ */
+
+/* --- Global text color overrides --- */
+[data-theme='light'] h1,
+[data-theme='light'] h2,
+[data-theme='light'] h3,
+[data-theme='light'] h4,
+[data-theme='light'] h5,
+[data-theme='light'] h6,
+[data-theme='light'] p,
+[data-theme='light'] label,
+[data-theme='light'] div {
+  color: inherit;
+}
+
+/* --- Logo icon in light mode --- */
+[data-theme='light'] .logo-icon {
+  background: linear-gradient(135deg, #4a7c9b, #6ba3c7) !important;
+}
+
+/* --- Avatar background in light mode --- */
+[data-theme='light'] .avatar {
+  background: linear-gradient(135deg, #4a7c9b, #6ba3c7) !important;
+  color: white !important;
+}
+
+/* --- Inputs, Textareas, Selects --- */
+[data-theme='light'] input,
+[data-theme='light'] textarea,
+[data-theme='light'] select {
+  color: #1a1a2e !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme='light'] input::placeholder,
+[data-theme='light'] textarea::placeholder {
+  color: #999 !important;
+}
+
+[data-theme='light'] input:focus,
+[data-theme='light'] textarea:focus,
+[data-theme='light'] select:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(61, 84, 103, 0.1) !important;
+}
+
+/* --- Glass cards and panels --- */
+[data-theme='light'] .glass-card,
+[data-theme='light'] .glass-panel {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+  color: #1a1a2e !important;
+}
+
+[data-theme='light'] .glass-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* --- Tables --- */
+[data-theme='light'] table {
+  color: #1a1a2e !important;
+}
+
+[data-theme='light'] th {
+  color: #4a5568 !important;
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme='light'] td {
+  color: #1a1a2e !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme='light'] tr:hover td {
+  background: rgba(0, 0, 0, 0.02) !important;
+}
+
+/* --- Buttons with hardcoded white text (non-primary) --- */
+[data-theme='light'] button {
+  color: #1a1a2e;
+}
+
+[data-theme='light'] .btn-primary,
+[data-theme='light'] button.btn-primary {
+  color: white !important;
+}
+
+/* --- Dashboard stat cards --- */
+[data-theme='light'] [style*="background: 'rgba(255,255,255,0.02)"],
+[data-theme='light'] [style*="rgba(255,255,255,0.02)"],
+[data-theme='light'] [style*="rgba(255,255,255,0.03)"],
+[data-theme='light'] [style*="rgba(255,255,255,0.05)"] {
+  background: rgba(0, 0, 0, 0.02) !important;
+}
+
+/* --- Override inline color:white on div/span/h/p/button --- */
+[data-theme='light'] div[style*="color: white"],
+[data-theme='light'] div[style*="color:'white'"],
+[data-theme='light'] span[style*="color: white"],
+[data-theme='light'] span[style*="color:'white'"],
+[data-theme='light'] h2[style*="color: white"],
+[data-theme='light'] h3[style*="color: white"],
+[data-theme='light'] h4[style*="color: white"],
+[data-theme='light'] p[style*="color: white"],
+[data-theme='light'] button[style*="color: white"],
+[data-theme='light'] label[style*="color: white"] {
+  color: #1a1a2e !important;
+}
+
+/* --- Override inline color:#fff --- */
+[data-theme='light'] div[style*="color: #fff"],
+[data-theme='light'] span[style*="color: #fff"],
+[data-theme='light'] h2[style*="color: #fff"],
+[data-theme='light'] h3[style*="color: #fff"],
+[data-theme='light'] p[style*="color: #fff"] {
+  color: #1a1a2e !important;
+}
+
+/* --- Inline dark backgrounds override --- */
+[data-theme='light'] div[style*="background: rgba(0,0,0"],
+[data-theme='light'] div[style*="background: rgba(0, 0, 0"],
+[data-theme='light'] div[style*="background: 'rgba(0,0,0"],
+[data-theme='light'] div[style*="background: rgb(0, 0, 0"] {
+  background: rgba(0, 0, 0, 0.03) !important;
+  color: #1a1a2e !important;
+}
+
+/* --- Compositions with background:rgba(15,15,25 or similar dark --- */
+[data-theme='light'] div[style*="rgba(15,15,25"],
+[data-theme='light'] div[style*="rgba(10,10,20"],
+[data-theme='light'] div[style*="rgba(15, 23, 42"] {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #1a1a2e !important;
+}
+
+/* --- Navbar light fixes --- */
+[data-theme='light'] .navbar {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme='light'] .nav-link {
+  color: #4a5568 !important;
+}
+
+[data-theme='light'] .nav-link.active {
+  color: white !important;
+  background: var(--primary) !important;
+}
+
+/* --- Dashboard tabs --- */
+[data-theme='light'] [style*="borderBottom: '3px solid"] {
+  color: #1a1a2e !important;
+}
+
+/* --- Sentiment Dashboard specific --- */
+[data-theme='light'] [style*="background: var(--glass-bg)"] {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* --- Charts & analysis area labels --- */
+[data-theme='light'] .recharts-text,
+[data-theme='light'] .recharts-cartesian-axis-tick-value {
+  fill: #4a5568 !important;
+}
+
+[data-theme='light'] .recharts-legend-item-text {
+  color: #4a5568 !important;
+}
+
+/* --- Option buttons in review forms --- */
+[data-theme='light'] button[style*="rgba(255,255,255,0.03)"],
+[data-theme='light'] button[style*="rgba(255,255,255,0.02)"] {
+  background: rgba(0, 0, 0, 0.03) !important;
+  color: #1a1a2e !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* --- Review form modal --- keep dark since it has fixed dark bg --- */
+/* The modal has its own dark background so text should stay white */
+
+/* --- Sidebar items in analysis dashboard --- */
+[data-theme='light'] [style*="borderLeft: '4px solid"] {
+  color: #1a1a2e !important;
+}
+
+/* --- Footer --- */
+[data-theme='light'] footer,
+[data-theme='light'] footer div,
+[data-theme='light'] footer span,
+[data-theme='light'] footer p,
+[data-theme='light'] footer a {
+  color: #4a5568 !important;
+}
+
+[data-theme='light'] footer {
+  background: #f8f9fa !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* --- Community page --- */
+[data-theme='light'] [style*="background: rgba(255,255,255,0.02)"],
+[data-theme='light'] [style*="background: rgba(255,255,255,0.05)"] {
+  background: rgba(0, 0, 0, 0.02) !important;
+}
+
+/* --- Inbox page messaging --- */
+[data-theme='light'] [style*="background: rgba(255,255,255,0.05)"] {
+  background: #f0f0f0 !important;
+  color: #1a1a2e !important;
+}
+
+/* --- Profile page --- */
+[data-theme='light'] [style*="background: rgba(255,255,255,0.03)"] {
+  background: rgba(0, 0, 0, 0.02) !important;
+  color: #1a1a2e !important;
+}
+
+/* Badge/tag colors stay as-is — they have colored backgrounds */
+
+/* --- Mobile menu --- */
+[data-theme='light'] .mobile-menu-link {
+  color: #1a1a2e !important;
+}
+
+[data-theme='light'] .mobile-menu-link:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* --- Scrollbar light mode --- */
+[data-theme='light'] ::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+}
+
+[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* --- Links --- */
+[data-theme='light'] a {
+  color: var(--primary);
+}
+
+/* --- Loader spinner --- */
+[data-theme='light'] .loader {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  border-top-color: var(--primary) !important;
+}
+
+/* --- Select dropdowns --- */
+[data-theme='light'] select option {
+  background: white !important;
+  color: #1a1a2e !important;
+}
+
+/* Hero section keeps its dark gradient background */
+
+/* --- Empty state text --- */
+[data-theme='light'] [style*="color: var(--text-muted)"] {
+  color: #6B6B63 !important;
 }

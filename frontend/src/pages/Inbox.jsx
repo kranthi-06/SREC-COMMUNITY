@@ -32,9 +32,9 @@ const Inbox = () => {
             console.error('Error fetching messages:', error);
         }
 
-        // Fetch reviews — only for students (admins don't receive review forms)
-        const isStudent = user && !['black_hat_admin', 'admin', 'editor_admin'].includes(user.role);
-        if (isStudent) {
+        // Fetch reviews — for students and black_hat_admin (black_hat_admin is a student role)
+        const canReceiveReviews = user && !['admin', 'editor_admin'].includes(user.role);
+        if (canReceiveReviews) {
             try {
                 const revRes = await axios.get(`${import.meta.env.VITE_API_URL}/reviews/student/inbox`);
                 setReviews(revRes.data);

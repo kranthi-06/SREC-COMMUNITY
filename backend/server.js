@@ -107,6 +107,7 @@ if (process.env.VERCEL) {
 const reviewRoutes = require('./routes/reviewRoutes');
 const authRoutes = require('./routes/authRoutes');
 const eventRoutes = require('./routes/eventRoutes');
+const importRoutes = require('./routes/importRoutes');
 
 // ============================================
 // MOUNT ROUTES
@@ -114,6 +115,7 @@ const eventRoutes = require('./routes/eventRoutes');
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/import', importRoutes);
 app.use('/api/profile', require('./routes/profileRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/posts', require('./routes/postRoutes'));

@@ -40,7 +40,7 @@ const Events = () => {
     return (
         <div className="container" style={{ padding: '4rem 0' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '4rem', textAlign: 'center' }}>
-                <h1 className="gradient-text" style={{ fontSize: '3.5rem', marginBottom: '1rem', display: 'flex', gap: '15px' }}>
+                <h1 className="gradient-text" style={{ fontSize: '3.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '15px' }}>
                     <Calendar size={48} color="var(--primary)" /> Campus Events Board
                 </h1>
                 <p style={{ color: 'var(--text-muted)', fontSize: '1.2rem', maxWidth: '600px' }}>
