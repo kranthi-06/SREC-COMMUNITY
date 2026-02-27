@@ -90,9 +90,9 @@ exports.createReviewRequest = async (req, res) => {
             // Mode 2: Filter-based targeting
             const targetGroups = filterGroups || (filters ? [filters] : []);
 
-            let queryStr = 'SELECT id FROM users WHERE role = $1';
-            let vals = ['student'];
-            let count = 2;
+            let queryStr = 'SELECT id FROM users WHERE 1=1';
+            let vals = [];
+            let count = 1;
 
             if (targetGroups.length > 0) {
                 const groupClauses = [];
