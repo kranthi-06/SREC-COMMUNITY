@@ -10,6 +10,7 @@ const AdminReviews = () => {
 
     // Create Mode States
     const [formTitle, setFormTitle] = useState('');
+    const [formDescription, setFormDescription] = useState('');
     const [questions, setQuestions] = useState([
         { id: Date.now().toString(), text: '', type: 'OPTION_BASED', options: ['Good', 'Average', 'Poor'], scale: 5 }
     ]);
@@ -158,7 +159,7 @@ const AdminReviews = () => {
             } else {
                 finalOpts = q.options.filter(o => o.trim() !== '');
             }
-            return { id: q.id, text: q.text, type: q.type, options: finalOpts };
+            return { id: q.id, text: q.text, type: q.type, options: finalOpts, ...(q.type === 'TEXT_BASED' && { minChars: q.minChars || 10, maxChars: q.maxChars || 500 }) };
         });
 
         // Validation
@@ -172,11 +173,13 @@ const AdminReviews = () => {
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/reviews/admin/create`, {
                 title: formTitle,
+                description: formDescription,
                 questions: finalQuestions,
                 filterGroups
             });
             setStatus({ type: 'success', text: res.data.message });
             setFormTitle('');
+            setFormDescription('');
             setQuestions([{ id: Date.now().toString(), text: '', type: 'OPTION_BASED', options: ['Good', 'Average', 'Poor'], scale: 5 }]);
             setFilterGroups([{ id: Date.now(), department: '', year: '' }]);
         } catch (error) {
@@ -235,6 +238,16 @@ const AdminReviews = () => {
                                     value={formTitle} onChange={(e) => setFormTitle(e.target.value)}
                                     placeholder="e.g., Spring 2026 Facility & Curriculum Feedback"
                                     style={{ width: '100%', padding: '15px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '1.2rem', fontWeight: 'bold' }}
+                                />
+                            </div>
+
+                            <div style={{ marginBottom: '2rem' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-muted)' }}>Description <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>(Shown to students on homepage)</span></label>
+                                <textarea
+                                    value={formDescription} onChange={(e) => setFormDescription(e.target.value)}
+                                    placeholder="Brief description of what this review is about and why it matters..."
+                                    rows={3}
+                                    style={{ width: '100%', padding: '15px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.95rem', resize: 'none', lineHeight: '1.6' }}
                                 />
                             </div>
 
@@ -327,6 +340,7 @@ const AdminReviews = () => {
                                                     <option value="OPTION_BASED">Multiple Choice</option>
                                                     <option value="EMOJI_BASED">Emoji Sentiment</option>
                                                     <option value="RATING_BASED">Linear Rating Scale</option>
+                                                    <option value="TEXT_BASED">Text Based (AI Sentiment)</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -373,6 +387,25 @@ const AdminReviews = () => {
                                                     <option value={5}>1 to 5 points</option>
                                                     <option value={10}>1 to 10 points</option>
                                                 </select>
+                                            </div>
+                                        )}
+
+                                        {q.type === 'TEXT_BASED' && (
+                                            <div style={{ paddingLeft: '1rem', borderLeft: '2px solid rgba(139, 92, 246, 0.3)' }}>
+                                                <div style={{ background: 'rgba(139, 92, 246, 0.05)', padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(139, 92, 246, 0.15)' }}>
+                                                    <p style={{ fontSize: '0.85rem', color: '#8b5cf6', fontWeight: '700', margin: '0 0 8px 0' }}>🤖 AI-Powered Sentiment Analysis</p>
+                                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Students will type free-text feedback. Groq AI will automatically analyze sentiment (Positive / Neutral / Negative) after submission.</p>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                                                    <div style={{ flex: 1 }}>
+                                                        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Min Characters</label>
+                                                        <input type="number" value={q.minChars || 10} onChange={(e) => updateQuestion(q.id, 'minChars', Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'white', marginTop: '4px' }} />
+                                                    </div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Max Characters</label>
+                                                        <input type="number" value={q.maxChars || 500} onChange={(e) => updateQuestion(q.id, 'maxChars', Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'white', marginTop: '4px' }} />
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
 

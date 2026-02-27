@@ -114,6 +114,14 @@ const runMigration = async () => {
         `);
         console.log('✅ review_responses sentiment columns ready');
 
+        // 8. Add description column to review_requests
+        await pool.query(`
+            DO $$ BEGIN
+                BEGIN ALTER TABLE review_requests ADD COLUMN description TEXT DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
+            END $$;
+        `);
+        console.log('✅ review_requests description column ready');
+
         console.log('\n🎉 Production Hardening Migration COMPLETE!');
         process.exit(0);
     } catch (error) {

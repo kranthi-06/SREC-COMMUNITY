@@ -17,8 +17,122 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 // Import icons — Eye is used for the "Check Review" button
-import { MessageSquare, BarChart3, ShieldCheck, Sparkles, ArrowRight, Activity, Zap, Eye, ChevronDown } from 'lucide-react';
+import { MessageSquare, BarChart3, ShieldCheck, Sparkles, ArrowRight, Activity, Zap, Eye, ChevronDown, FileText, Clock, CheckCircle } from 'lucide-react';
 import { getImageUrl } from '../utils/imageUtils';
+
+/* ============================================
+   PUBLISHED REVIEWS COMPONENT
+   Shows review requests assigned to the logged-in student
+   on the homepage as premium cards with heading + description
+   ============================================ */
+const PublishedReviews = () => {
+    const [reviews, setReviews] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+    const { user } = useAuth();
+
+    useEffect(() => {
+        if (!user) { setLoading(false); return; }
+        const fetchPublished = async () => {
+            try {
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/reviews/student/published`);
+                setReviews(res.data);
+            } catch (err) {
+                console.error('Failed to fetch published reviews');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPublished();
+    }, [user]);
+
+    if (loading) return <div className="loader" style={{ margin: '2rem auto' }}></div>;
+    if (!user || reviews.length === 0) return null;
+
+    return (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
+            {reviews.map((review, i) => (
+                <motion.div
+                    key={review.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    whileHover={{ y: -6, boxShadow: '0 20px 50px -15px rgba(139, 92, 246, 0.15)' }}
+                    transition={{ delay: i * 0.08 }}
+                    onClick={() => navigate('/inbox')}
+                    style={{
+                        background: 'rgba(255,255,255,0.02)',
+                        border: review.is_answered ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(139, 92, 246, 0.2)',
+                        borderRadius: '16px',
+                        padding: '1.8rem',
+                        cursor: 'pointer',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        transition: 'all 0.3s ease',
+                        backdropFilter: 'blur(10px)'
+                    }}
+                >
+                    {/* Status badge */}
+                    <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
+                        {review.is_answered ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '5px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' }}>
+                                <CheckCircle size={13} /> Completed
+                            </span>
+                        ) : (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(139, 92, 246, 0.1)', color: '#a78bfa', padding: '5px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' }}>
+                                <Clock size={13} /> Pending
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Icon */}
+                    <div style={{
+                        width: '44px', height: '44px', borderRadius: '12px',
+                        background: review.is_answered ? 'rgba(16, 185, 129, 0.08)' : 'rgba(139, 92, 246, 0.08)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        marginBottom: '1rem',
+                        color: review.is_answered ? '#10b981' : '#a78bfa'
+                    }}>
+                        <FileText size={22} />
+                    </div>
+
+                    {/* Title */}
+                    <h3 style={{
+                        fontSize: '1.2rem', fontWeight: '800', marginBottom: '0.6rem',
+                        color: review.is_answered ? 'var(--text-muted)' : 'white',
+                        lineHeight: '1.3', paddingRight: '80px'
+                    }}>
+                        {review.title}
+                    </h3>
+
+                    {/* Description */}
+                    {review.description && (
+                        <p style={{
+                            color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.6',
+                            marginBottom: '1rem', display: '-webkit-box',
+                            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
+                        }}>
+                            {review.description}
+                        </p>
+                    )}
+
+                    {/* Footer */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '0.8rem', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        <span>{review.questions?.length || 1} Questions</span>
+                        <span>By {review.creator_name}</span>
+                    </div>
+
+                    {/* Accent gradient line at bottom */}
+                    <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px',
+                        background: review.is_answered
+                            ? 'linear-gradient(90deg, #10b981, #34d399)'
+                            : 'linear-gradient(90deg, #8b5cf6, #a78bfa, #c084fc)'
+                    }} />
+                </motion.div>
+            ))}
+        </div>
+    );
+};
 
 
 /* ============================================
@@ -352,6 +466,30 @@ const Home = () => {
                     </motion.div>
                 </div>
             </section>
+
+            {/* ========== PUBLISHED REVIEWS SECTION ========== */}
+            {user && (
+                <section style={{ padding: '2rem 0 4rem' }}>
+                    <div className="container">
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            style={{ marginBottom: '2.5rem' }}
+                        >
+                            <div className="section-label">Your Reviews</div>
+                            <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', fontWeight: '900', marginBottom: '0.8rem' }}>
+                                <span className="gradient-text">Published</span> Review Requests
+                            </h2>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '1rem', maxWidth: '600px' }}>
+                                Institutional review forms assigned to you. Click to open and complete in your inbox.
+                            </p>
+                        </motion.div>
+
+                        <PublishedReviews />
+                    </div>
+                </section>
+            )}
 
             {/* ========== CAMPUS EVENTS SECTION ========== */}
             {/* Events grid: each card has a "Check Review" button */}

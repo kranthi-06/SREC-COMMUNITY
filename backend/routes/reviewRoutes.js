@@ -18,6 +18,7 @@ router.get('/admin/export/:requestId', protect, adminOnly, reviewController.expo
 
 // === STUDENT ROUTES ===
 router.get('/student/inbox', protect, studentOnly, reviewController.getStudentInboxReviews);
+router.get('/student/published', protect, reviewController.getPublishedReviews);
 router.post('/student/submit/:requestId', protect, studentOnly, reviewController.submitReviewResponse);
 
 module.exports = router;

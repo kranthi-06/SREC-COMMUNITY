@@ -63,7 +63,7 @@ exports.sendQuickReview = async (req, res) => {
  */
 exports.createReviewRequest = async (req, res) => {
     try {
-        const { title, questions, filters, filterGroups, user_ids } = req.body;
+        const { title, description, questions, filters, filterGroups, user_ids } = req.body;
         const adminId = req.user.userId;
 
         if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
@@ -127,9 +127,9 @@ exports.createReviewRequest = async (req, res) => {
         }
 
         const insertReq = await db.query(`
-            INSERT INTO review_requests (admin_id, title, questions, filters)
-            VALUES ($1, $2, $3, $4) RETURNING id
-        `, [adminId, title, JSON.stringify(questions), JSON.stringify(filterGroups || [])]);
+            INSERT INTO review_requests (admin_id, title, description, questions, filters)
+            VALUES ($1, $2, $3, $4, $5) RETURNING id
+        `, [adminId, title, description || '', JSON.stringify(questions), JSON.stringify(filterGroups || [])]);
         const requestId = insertReq.rows[0].id;
 
         // Populate recipients
@@ -404,5 +404,31 @@ exports.submitReviewResponse = async (req, res) => {
     } catch (error) {
         console.error('Submission error:', error);
         res.status(500).json({ error: 'Internal Server Error Submitting Feedback' });
+    }
+};
+
+/**
+ * GET /api/reviews/student/published
+ * Get published review requests assigned to the current student (for homepage display).
+ * Returns pending reviews with title + description.
+ */
+exports.getPublishedReviews = async (req, res) => {
+    try {
+        const studentId = req.user.userId;
+        const result = await db.query(`
+            SELECT rr.id, rr.title, rr.description, rr.created_at,
+                   rr.questions, rrr.is_answered,
+                   u.full_name as creator_name
+            FROM review_requests rr
+            JOIN review_request_recipients rrr ON rr.id = rrr.request_id
+            JOIN users u ON rr.admin_id = u.id
+            WHERE rrr.student_id = $1
+            ORDER BY rr.created_at DESC
+            LIMIT 10
+        `, [studentId]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching published reviews:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 };
