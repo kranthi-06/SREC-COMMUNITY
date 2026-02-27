@@ -7,10 +7,18 @@
  * - Fallback to rule-based classifier
  * - Non-blocking — runs in background after student submits
  */
-const Groq = require('groq-sdk');
+let Groq;
+try { Groq = require('groq-sdk'); } catch (e) { Groq = null; }
 const db = require('../db');
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// Lazy initialization — only create client when needed
+let groqClient = null;
+function getGroqClient() {
+    if (!groqClient && Groq && process.env.GROQ_API_KEY) {
+        groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    }
+    return groqClient;
+}
 
 const SENTIMENT_PROMPT = `You are a sentiment analysis engine. Classify the sentiment of the following student feedback text.
 
@@ -73,9 +81,15 @@ function fallbackClassifier(text) {
  * @returns {Object} Sentiment result
  */
 async function analyzeSentimentWithGroq(text, retries = 3) {
+    const client = getGroqClient();
+    if (!client) {
+        console.log('[Sentiment] Groq client unavailable, using fallback classifier');
+        return fallbackClassifier(text);
+    }
+
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
-            const response = await groq.chat.completions.create({
+            const response = await client.chat.completions.create({
                 messages: [
                     {
                         role: 'system',
