@@ -56,8 +56,8 @@ app.use(cors({
 }));
 
 // 3. Body parsing with size limits
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // 4. HPP — HTTP Parameter Pollution protection
 app.use(hpp());

@@ -14,7 +14,7 @@ const db = require('../db');
 exports.getAllPosts = async (req, res) => {
     try {
         const query = `
-            SELECT p.id, p.content, p.image_url, p.link_url, p.pdf_url, p.created_at,
+            SELECT p.id, p.content, p.image_url, p.video_url, p.link_url, p.pdf_url, p.created_at,
                    u.full_name as author_name, u.role as author_role,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes,
                    (SELECT COUNT(*) FROM post_comments WHERE post_id = p.id) as comments,
@@ -41,42 +41,43 @@ exports.createPost = async (req, res) => {
         const { content, link_url } = req.body;
         let image_url = null;
         let pdf_url = null;
+        let video_url = null;
 
         if (req.files) {
-            // Convert image to base64 data URI for DB storage
-            // This ensures images persist on Vercel (ephemeral /tmp) and work everywhere
+            // Convert media to base64 data URI for DB storage (Vercel persistence)
             if (req.files.image) {
                 const imageFile = req.files.image[0];
-                const fs = require('fs');
-                try {
-                    const imageBuffer = fs.readFileSync(imageFile.path);
-                    const mimeType = imageFile.mimetype || 'image/jpeg';
-                    image_url = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
-                    // Clean up temp file
-                    try { fs.unlinkSync(imageFile.path); } catch (e) { }
-                } catch (readErr) {
-                    console.error('Failed to read image file:', readErr);
-                    image_url = `/uploads/${imageFile.filename}`;
-                }
+                const imageBuffer = imageFile.buffer;
+                const mimeType = imageFile.mimetype || 'image/jpeg';
+                image_url = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
             }
+
+            if (req.files.video) {
+                const videoFile = req.files.video[0];
+                const videoBuffer = videoFile.buffer;
+                const mimeType = videoFile.mimetype || 'video/mp4';
+                video_url = `data:${mimeType};base64,${videoBuffer.toString('base64')}`;
+            }
+
             if (req.files.pdf) {
                 pdf_url = `/uploads/${req.files.pdf[0].filename}`;
             }
         }
 
-        if (!content && !image_url && !pdf_url && !link_url) {
+        if (!content && !image_url && !pdf_url && !link_url && !video_url) {
             return res.status(400).json({ error: 'Cannot create an empty post.' });
         }
 
         const result = await db.query(`
-            INSERT INTO posts (author_id, content, image_url, link_url, pdf_url)
-            VALUES ($1, $2, $3, $4, $5) RETURNING id
-        `, [req.user.userId, content || '', image_url, link_url, pdf_url]);
+            INSERT INTO posts (author_id, content, image_url, video_url, link_url, pdf_url)
+            VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+        `, [req.user.userId, content || '', image_url, video_url, link_url, pdf_url]);
 
         // Audit: Post Created
         await req.audit('POST_CREATE', result.rows[0].id, {
             contentPreview: (content || '').substring(0, 100),
             hasImage: !!image_url,
+            hasVideo: !!video_url,
             hasPdf: !!pdf_url,
             hasLink: !!link_url
         });

@@ -22,7 +22,6 @@ import Profile from './pages/Profile';
 import Inbox from './pages/Inbox';
 import Community from './pages/Community';
 import Events from './pages/Events';
-import BackgroundAnimation from './components/BackgroundAnimation';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -125,12 +124,6 @@ function AppContent() {
     <>
       <ScrollToTop />
       <div className="app" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-        <div className="noise-overlay"></div>
-        <div className="bg-mesh">
-          <div className="orb orb-ambient"></div>
-        </div>
-        <BackgroundAnimation />
-
         {/* ========== NAVIGATION ========== */}
         <nav>
           <div className="nav-container">
@@ -182,11 +175,8 @@ function AppContent() {
             <ul className="nav-actions">
               {!user ? (
                 <>
-                  <li className="desktop-only">
-                    <Link to="/auth/select-role" className="nav-link" id="nav-signin">Sign In</Link>
-                  </li>
-                  <li className="desktop-only">
-                    <Link to="/auth/select-role" className="btn btn-primary" id="nav-join" style={{ padding: '8px 20px', fontSize: '0.85rem' }}>
+                  <li>
+                    <Link to="/auth/select-role" className="btn btn-primary" style={{ padding: '8px 20px', fontSize: '0.85rem' }}>
                       Join SREC
                     </Link>
                   </li>
@@ -299,13 +289,6 @@ function AppContent() {
                     </>
                   )}
 
-                  {!user && (
-                    <>
-                      <Link to="/auth/select-role" className="mobile-menu-link">
-                        <UserIcon size={18} /> Sign In
-                      </Link>
-                    </>
-                  )}
                 </div>
               </motion.div>
             )}

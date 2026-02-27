@@ -10,27 +10,33 @@
    CSS CUSTOM PROPERTIES — Design Tokens
    ============================================ */
 :root {
-  /* Primary teal palette inspired by user image */
-  --accent-green: #418C94;
-  --accent-green-light: #5CABB1;
-  --accent-olive: #225760;
-  --accent-sage: #A3C9C9;
-  --accent-gold: #225760;
-  --accent-cream: #F2F4F5;
+  /* Primary blue palette as requested */
+  --accent-green: #3D5467;
+  /* Dark Blue */
+  --accent-green-light: #8CAFCF;
+  /* Steel Blue */
+  --accent-olive: #3D5467;
+  /* Dark Blue fallback */
+  --accent-sage: #AAD6FF;
+  /* Light Blue */
+  --accent-gold: #8CAFCF;
+  /* Steel Blue fallback */
+  --accent-cream: #F7F8F3;
+  /* Warm Cream */
 
   /* Dark theme base - Pure Black */
   --bg-main: #000000;
-  --bg-surface: #000000;
-  --bg-card: #050505;
+  --bg-surface: #000105;
+  --bg-card: #050608;
   --text-main: #FFFFFF;
 
-  --text-muted: #8FA1A1;
-  --text-light: #B0C4C4;
+  --text-muted: #94A3B8;
+  --text-light: #CBD5E1;
 
-  /* Glass morphism */
-  --glass-bg: rgba(10, 15, 15, 0.65);
-  --glass-border: rgba(65, 140, 148, 0.12);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  /* Glass morphism with blue tint */
+  --glass-bg: rgba(15, 23, 42, 0.65);
+  --glass-border: rgba(140, 175, 207, 0.12);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 
   /* Alert / Status colors */
   --danger: #ef4444;
@@ -43,14 +49,14 @@
   --warning-bg: rgba(245, 158, 11, 0.08);
 
   /* Legacy color compatibility */
-  --g-blue: #418C94;
-  --primary: #418C94;
-  --primary-h: 185;
-  --primary-s: 39%;
-  --secondary: #225760;
-  --secondary-h: 188;
-  --secondary-s: 47%;
-  --accent: #5CABB1;
+  --g-blue: #3D5467;
+  --primary: #3D5467;
+  --primary-h: 206;
+  --primary-s: 25%;
+  --secondary: #8CAFCF;
+  --secondary-h: 209;
+  --secondary-s: 44%;
+  --accent: #AAD6FF;
 
   /* Geometry */
   --radius-xs: 10px;
@@ -588,7 +594,7 @@ nav {
 
 .nav-link {
   text-decoration: none;
-  color: var(--text-main);
+  color: var(--text-light);
   font-weight: 600;
   font-size: 0.88rem;
   padding: 8px 16px;
