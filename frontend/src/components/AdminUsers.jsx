@@ -409,56 +409,205 @@ const AdminUsers = () => {
                 )}
             </AnimatePresence>
 
-            {/* Quick Review Modal */}
+            {/* Review Creation Modal */}
             <AnimatePresence>
                 {isReviewModalOpen && (
                     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass-card" style={{ maxWidth: '500px', width: '100%', padding: '2.5rem', position: 'relative' }}>
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass-card" style={{ maxWidth: '650px', width: '100%', padding: '2.5rem', position: 'relative', maxHeight: '85vh', overflowY: 'auto' }}>
                             <button onClick={() => setIsReviewModalOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={24} /></button>
 
                             <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                                 <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
                                     <FileText size={32} />
                                 </div>
-                                <h3 style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>Quick Review Dispatch</h3>
-                                <p style={{ color: 'var(--text-muted)' }}>Request performance feedback from {targetUserIds.length} users.</p>
+                                <h3 style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>Create Review Request</h3>
+                                <p style={{ color: 'var(--text-muted)' }}>Dispatch to {targetUserIds.length} selected recipients.</p>
                             </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                <p style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Select Review Template</p>
-                                {[
-                                    'Academic Performance Review',
-                                    'Campus Conduct Evaluation',
-                                    'Project Milestone Feedback',
-                                    'Mid-Term Progress Check'
-                                ].map(title => (
-                                    <button
-                                        key={title}
-                                        disabled={sending}
-                                        onClick={() => handleSendQuickReview(title)}
-                                        style={{
-                                            background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '16px 20px', color: 'white', textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                            fontWeight: '600'
-                                        }}
-                                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
-                                        onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                                    >
-                                        {title}
-                                        <Send size={16} color="var(--primary)" />
-                                    </button>
-                                ))}
-                            </div>
+                            <ReviewCreationForm
+                                targetUserIds={targetUserIds}
+                                sending={sending}
+                                setSending={setSending}
+                                onSuccess={(msg) => {
+                                    setStatus({ type: 'success', text: msg });
+                                    setIsReviewModalOpen(false);
+                                }}
+                                onError={(msg) => setStatus({ type: 'error', text: msg })}
+                            />
 
                             {sending && (
                                 <div style={{ marginTop: '2rem', textAlign: 'center' }}>
                                     <div className="loader" style={{ width: '25px', height: '25px', margin: '0 auto' }}></div>
-                                    <p style={{ marginTop: '10px', fontSize: '0.9rem' }}>Transmitting reviews...</p>
+                                    <p style={{ marginTop: '10px', fontSize: '0.9rem' }}>Transmitting review...</p>
                                 </div>
                             )}
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
+        </div>
+    );
+};
+
+/**
+ * ReviewCreationForm — Supports all 4 review types
+ */
+const ReviewCreationForm = ({ targetUserIds, sending, setSending, onSuccess, onError }) => {
+    const [title, setTitle] = useState('');
+    const [questionText, setQuestionText] = useState('');
+    const [reviewType, setReviewType] = useState('OPTION_BASED');
+    const [customOptions, setCustomOptions] = useState(['', '']);
+    const [ratingScale, setRatingScale] = useState('5');
+    const [minChars, setMinChars] = useState(10);
+    const [maxChars, setMaxChars] = useState(500);
+
+    const emojiOptions = ['😊 Amazing', '🙂 Good', '😐 Average', '😠 Poor'];
+
+    const addOption = () => setCustomOptions([...customOptions, '']);
+    const removeOption = (idx) => setCustomOptions(customOptions.filter((_, i) => i !== idx));
+    const updateOption = (idx, val) => {
+        const updated = [...customOptions];
+        updated[idx] = val;
+        setCustomOptions(updated);
+    };
+
+    const handleSubmit = async () => {
+        if (!title.trim() || !questionText.trim()) {
+            onError('Title and question text are required.');
+            return;
+        }
+
+        let options = [];
+        let questionId = 'q_' + Date.now();
+
+        if (reviewType === 'OPTION_BASED') {
+            options = customOptions.filter(o => o.trim());
+            if (options.length < 2) { onError('At least 2 options are required.'); return; }
+        } else if (reviewType === 'EMOJI_BASED') {
+            options = emojiOptions;
+        } else if (reviewType === 'RATING_BASED') {
+            const scale = parseInt(ratingScale);
+            options = Array.from({ length: scale }, (_, i) => String(i + 1));
+        }
+
+        const question = {
+            id: questionId,
+            text: questionText.trim(),
+            type: reviewType,
+            ...(reviewType !== 'TEXT_BASED' && { options }),
+            ...(reviewType === 'TEXT_BASED' && { minChars: parseInt(minChars), maxChars: parseInt(maxChars) })
+        };
+
+        setSending(true);
+        try {
+            await axios.post(`${import.meta.env.VITE_API_URL}/reviews/admin/create`, {
+                title: title.trim(),
+                questions: [question],
+                filterGroups: [],
+                // Override: send to specific user IDs
+                user_ids: targetUserIds
+            });
+            onSuccess(`Review "${title}" dispatched to ${targetUserIds.length} users.`);
+        } catch (error) {
+            onError(error.response?.data?.error || 'Failed to create review.');
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const inputStyle = {
+        width: '100%', padding: '12px 15px', background: 'rgba(255,255,255,0.03)',
+        border: '1px solid var(--glass-border)', borderRadius: '10px', color: 'white',
+        fontSize: '0.95rem', outline: 'none'
+    };
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+            <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '700', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Review Title</label>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Mid-Term Feedback Survey" style={inputStyle} />
+            </div>
+
+            <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '700', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Question</label>
+                <textarea value={questionText} onChange={(e) => setQuestionText(e.target.value)} placeholder="Enter the review question..." rows={2} style={{ ...inputStyle, resize: 'none' }} />
+            </div>
+
+            <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '700', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Response Type</label>
+                <select value={reviewType} onChange={(e) => setReviewType(e.target.value)} style={inputStyle}>
+                    <option value="OPTION_BASED">📋 Option Based (Custom Choices)</option>
+                    <option value="EMOJI_BASED">😊 Emoji Based</option>
+                    <option value="RATING_BASED">⭐ Rating Based (Scale)</option>
+                    <option value="TEXT_BASED">📝 Text Based (AI Sentiment Analysis)</option>
+                </select>
+            </div>
+
+            {/* Dynamic fields based on type */}
+            {reviewType === 'OPTION_BASED' && (
+                <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '700', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Custom Options</label>
+                    {customOptions.map((opt, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                            <input value={opt} onChange={(e) => updateOption(idx, e.target.value)} placeholder={`Option ${idx + 1}`} style={{ ...inputStyle, flex: 1 }} />
+                            {customOptions.length > 2 && (
+                                <button onClick={() => removeOption(idx)} style={{ background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer' }}><X size={16} /></button>
+                            )}
+                        </div>
+                    ))}
+                    <button onClick={addOption} style={{ background: 'transparent', border: '1px dashed var(--glass-border)', color: 'var(--text-muted)', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', marginTop: '4px' }}>+ Add Option</button>
+                </div>
+            )}
+
+            {reviewType === 'EMOJI_BASED' && (
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '10px', border: '1px solid var(--glass-border)' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '10px' }}>Predefined emoji options:</p>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        {emojiOptions.map(e => (
+                            <span key={e} style={{ background: 'rgba(59,130,246,0.1)', padding: '8px 14px', borderRadius: '20px', fontSize: '0.9rem' }}>{e}</span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {reviewType === 'RATING_BASED' && (
+                <div>
+                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '700', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Rating Scale</label>
+                    <select value={ratingScale} onChange={(e) => setRatingScale(e.target.value)} style={inputStyle}>
+                        <option value="5">1–5 Scale</option>
+                        <option value="10">1–10 Scale</option>
+                    </select>
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
+                        {Array.from({ length: parseInt(ratingScale) }, (_, i) => (
+                            <span key={i} style={{ width: '35px', height: '35px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(59,130,246,0.1)', fontSize: '0.8rem', fontWeight: '800', color: '#60a5fa' }}>{i + 1}</span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {reviewType === 'TEXT_BASED' && (
+                <div style={{ background: 'rgba(139, 92, 246, 0.05)', padding: '15px', borderRadius: '10px', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+                    <p style={{ fontSize: '0.85rem', color: '#8b5cf6', marginBottom: '12px', fontWeight: '700' }}>🤖 AI-Powered — Responses will be analyzed by Groq AI for sentiment</p>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Min Characters</label>
+                            <input type="number" value={minChars} onChange={(e) => setMinChars(e.target.value)} style={{ ...inputStyle, marginTop: '4px' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Max Characters</label>
+                            <input type="number" value={maxChars} onChange={(e) => setMaxChars(e.target.value)} style={{ ...inputStyle, marginTop: '4px' }} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <button
+                onClick={handleSubmit} disabled={sending || !title.trim() || !questionText.trim()}
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '15px', borderRadius: '12px', fontSize: '1.05rem', marginTop: '0.5rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}
+            >
+                {sending ? 'Dispatching...' : <><Send size={18} /> Dispatch Review Request</>}
+            </button>
         </div>
     );
 };

@@ -66,9 +66,17 @@ const Inbox = () => {
         if (!selectedReview || selectedReview.is_answered) return;
 
         // Validation - Missing Answers
-        if (Object.keys(answers).length !== selectedReview.questions.length) {
-            alert('Mandatory Requirement: Please answer all questions in this form before submitting.');
-            return;
+        const allQuestions = selectedReview.questions;
+        for (const q of allQuestions) {
+            if (!answers[q.id] || (typeof answers[q.id] === 'string' && !answers[q.id].trim())) {
+                alert('Mandatory Requirement: Please answer all questions in this form before submitting.');
+                return;
+            }
+            // TEXT_BASED min char check
+            if (q.type === 'TEXT_BASED' && q.minChars && answers[q.id].length < q.minChars) {
+                alert(`Your text response must be at least ${q.minChars} characters. Currently: ${answers[q.id].length}`);
+                return;
+            }
         }
 
         setSubmittingReview(true);
@@ -303,6 +311,34 @@ const Inbox = () => {
                                                                     {opt}
                                                                 </button>
                                                             ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* TEXT_BASED — AI Analyzed */}
+                                                    {q.type === 'TEXT_BASED' && (
+                                                        <div>
+                                                            <textarea
+                                                                value={answers[q.id] || ''}
+                                                                onChange={(e) => handleOptionSelect(q.id, e.target.value)}
+                                                                disabled={submittingReview || selectedReview.is_answered}
+                                                                placeholder="Type your detailed feedback here..."
+                                                                rows={5}
+                                                                maxLength={q.maxChars || 1000}
+                                                                style={{
+                                                                    width: '100%', padding: '15px 18px', fontSize: '1rem', borderRadius: '12px',
+                                                                    background: 'var(--glass-bg)', border: '1px solid var(--glass-border)',
+                                                                    color: 'white', resize: 'vertical', outline: 'none', lineHeight: '1.6',
+                                                                    opacity: (submittingReview || selectedReview.is_answered) ? 0.6 : 1
+                                                                }}
+                                                            />
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                                <span style={{ color: (answers[q.id] || '').length < (q.minChars || 10) ? '#ef4444' : '#10b981' }}>
+                                                                    {(answers[q.id] || '').length} / {q.minChars || 10} min characters
+                                                                </span>
+                                                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#8b5cf6' }}>
+                                                                    🤖 AI sentiment analysis will be applied
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>

@@ -103,6 +103,17 @@ const runMigration = async () => {
         `);
         console.log('✅ review_responses column sizes fixed');
 
+        // 7. Add sentiment analysis columns to review_responses
+        await pool.query(`
+            DO $$ BEGIN
+                BEGIN ALTER TABLE review_responses ADD COLUMN sentiment_label VARCHAR(20); EXCEPTION WHEN duplicate_column THEN NULL; END;
+                BEGIN ALTER TABLE review_responses ADD COLUMN sentiment_score FLOAT; EXCEPTION WHEN duplicate_column THEN NULL; END;
+                BEGIN ALTER TABLE review_responses ADD COLUMN ai_confidence FLOAT; EXCEPTION WHEN duplicate_column THEN NULL; END;
+                BEGIN ALTER TABLE review_responses ADD COLUMN analyzed_at TIMESTAMP; EXCEPTION WHEN duplicate_column THEN NULL; END;
+            END $$;
+        `);
+        console.log('✅ review_responses sentiment columns ready');
+
         console.log('\n🎉 Production Hardening Migration COMPLETE!');
         process.exit(0);
     } catch (error) {

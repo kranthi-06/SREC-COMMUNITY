@@ -6,6 +6,7 @@
  * All actions are audit-logged.
  */
 const db = require('../db');
+const { processResponseSentiment } = require('../services/sentimentService');
 
 /**
  * POST /api/reviews/admin/send-quick
@@ -62,7 +63,7 @@ exports.sendQuickReview = async (req, res) => {
  */
 exports.createReviewRequest = async (req, res) => {
     try {
-        const { title, questions, filters, filterGroups } = req.body;
+        const { title, questions, filters, filterGroups, user_ids } = req.body;
         const adminId = req.user.userId;
 
         if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
@@ -74,72 +75,79 @@ exports.createReviewRequest = async (req, res) => {
             if (!q.id || !q.text || !q.type) {
                 return res.status(400).json({ error: 'Each question must have id, text, and type.' });
             }
-            const validTypes = ['OPTION_BASED', 'EMOJI_BASED', 'RATING_BASED'];
+            const validTypes = ['OPTION_BASED', 'EMOJI_BASED', 'RATING_BASED', 'TEXT_BASED'];
             if (!validTypes.includes(q.type)) {
                 return res.status(400).json({ error: `Invalid question type: ${q.type}. Must be one of: ${validTypes.join(', ')}` });
             }
         }
 
-        // Segment identification logic
-        const targetGroups = filterGroups || (filters ? [filters] : []);
+        let recipientIds = [];
 
-        let queryStr = 'SELECT id FROM users WHERE role = $1';
-        let vals = ['student'];
-        let count = 2;
+        // Mode 1: Direct user_ids targeting (from admin user table)
+        if (user_ids && Array.isArray(user_ids) && user_ids.length > 0) {
+            recipientIds = user_ids;
+        } else {
+            // Mode 2: Filter-based targeting
+            const targetGroups = filterGroups || (filters ? [filters] : []);
 
-        if (targetGroups.length > 0) {
-            const groupClauses = [];
-            targetGroups.forEach(group => {
-                const clauses = [];
-                if (group.department) {
-                    clauses.push(`department = $${count}`);
-                    vals.push(group.department);
-                    count++;
-                }
-                if (group.year) {
-                    clauses.push(`(batch_year = $${count} OR left(split_part(email, '@', 1), 2) = $${count})`);
-                    vals.push(group.year);
-                    count++;
-                }
-                if (clauses.length > 0) {
-                    groupClauses.push(`(${clauses.join(' AND ')})`);
-                }
-            });
+            let queryStr = 'SELECT id FROM users WHERE role = $1';
+            let vals = ['student'];
+            let count = 2;
 
-            if (groupClauses.length > 0) {
-                queryStr += ` AND (${groupClauses.join(' OR ')})`;
+            if (targetGroups.length > 0) {
+                const groupClauses = [];
+                targetGroups.forEach(group => {
+                    const clauses = [];
+                    if (group.department) {
+                        clauses.push(`department = $${count}`);
+                        vals.push(group.department);
+                        count++;
+                    }
+                    if (group.year) {
+                        clauses.push(`(batch_year = $${count} OR left(split_part(email, '@', 1), 2) = $${count})`);
+                        vals.push(group.year);
+                        count++;
+                    }
+                    if (clauses.length > 0) {
+                        groupClauses.push(`(${clauses.join(' AND ')})`);
+                    }
+                });
+
+                if (groupClauses.length > 0) {
+                    queryStr += ` AND (${groupClauses.join(' OR ')})`;
+                }
             }
+
+            const students = await db.query(queryStr, vals);
+            recipientIds = students.rows.map(s => s.id);
         }
 
-        const students = await db.query(queryStr, vals);
-
-        if (students.rows.length === 0) {
-            return res.status(400).json({ error: 'Zero students found matching the selected population segments.' });
+        if (recipientIds.length === 0) {
+            return res.status(400).json({ error: 'Zero users found matching the selected criteria.' });
         }
 
         const insertReq = await db.query(`
             INSERT INTO review_requests (admin_id, title, questions, filters)
             VALUES ($1, $2, $3, $4) RETURNING id
-        `, [adminId, title, JSON.stringify(questions), JSON.stringify(targetGroups)]);
+        `, [adminId, title, JSON.stringify(questions), JSON.stringify(filterGroups || [])]);
         const requestId = insertReq.rows[0].id;
 
         // Populate recipients
-        for (const student of students.rows) {
+        for (const userId of recipientIds) {
             await db.query(`
                 INSERT INTO review_request_recipients (request_id, student_id)
                 VALUES ($1, $2)
-            `, [requestId, student.id]);
+            `, [requestId, userId]);
         }
 
         // Audit: Review Created
         await req.audit('REVIEW_CREATE', requestId, {
             title,
             questionCount: questions.length,
-            targetSegments: targetGroups,
-            recipientCount: students.rows.length
+            recipientCount: recipientIds.length
         });
 
-        res.status(201).json({ message: `Successfully dispatched review form to ${students.rows.length} targeted students` });
+        res.status(201).json({ message: `Successfully dispatched review form to ${recipientIds.length} targeted users` });
     } catch (error) {
         console.error('Error creating review form:', error);
         res.status(500).json({ error: 'Server error: ' + error.message });
@@ -186,7 +194,8 @@ exports.getReviewAnalytics = async (req, res) => {
         );
 
         const responses = await db.query(`
-            SELECT answers, department, year_string, created_at
+            SELECT answers, department, year_string, created_at,
+                   sentiment_label, sentiment_score, ai_confidence, analyzed_at
             FROM review_responses
             WHERE request_id = $1
         `, [requestId]);
@@ -194,6 +203,7 @@ exports.getReviewAnalytics = async (req, res) => {
         // Aggregate analytics per question
         const distributions = {};
         const departmentBreakdown = {};
+        const sentimentSummary = { Positive: 0, Neutral: 0, Negative: 0, totalScore: 0, analyzed: 0 };
 
         requestData.questions.forEach(q => {
             distributions[q.id] = {};
@@ -208,9 +218,24 @@ exports.getReviewAnalytics = async (req, res) => {
 
             for (const [qId, ans] of Object.entries(answers)) {
                 if (!distributions[qId]) distributions[qId] = {};
-                distributions[qId][ans] = (distributions[qId][ans] || 0) + 1;
+                // For TEXT_BASED, don't aggregate the text as distribution options
+                const question = requestData.questions.find(q => q.id === qId);
+                if (question && question.type !== 'TEXT_BASED') {
+                    distributions[qId][ans] = (distributions[qId][ans] || 0) + 1;
+                }
+            }
+
+            // Aggregate sentiment data
+            if (r.sentiment_label) {
+                sentimentSummary[r.sentiment_label] = (sentimentSummary[r.sentiment_label] || 0) + 1;
+                sentimentSummary.totalScore += (r.sentiment_score || 0);
+                sentimentSummary.analyzed++;
             }
         });
+
+        sentimentSummary.averageScore = sentimentSummary.analyzed > 0
+            ? parseFloat((sentimentSummary.totalScore / sentimentSummary.analyzed).toFixed(3))
+            : null;
 
         res.json({
             request: requestData,
@@ -219,6 +244,7 @@ exports.getReviewAnalytics = async (req, res) => {
             pending: parseInt(sentCount.rows[0].count) - responses.rows.length,
             distributions,
             departmentBreakdown,
+            sentimentSummary,
             raw_responses: responses.rows
         });
     } catch (error) {
@@ -338,15 +364,36 @@ exports.submitReviewResponse = async (req, res) => {
         const yearStr = studentQuery.rows[0].email.split('@')[0].substring(0, 2);
 
         // Add response
-        await db.query(`
+        const insertResult = await db.query(`
             INSERT INTO review_responses (request_id, student_id, department, year_string, answers)
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, $3, $4, $5) RETURNING id
         `, [requestId, studentId, dept, yearStr, JSON.stringify(answers)]);
+        const responseId = insertResult.rows[0].id;
 
         // Mark as answered
         await db.query(`
             UPDATE review_request_recipients SET is_answered = true WHERE request_id = $1 AND student_id = $2
         `, [requestId, studentId]);
+
+        // Check if any answers are TEXT_BASED — trigger async AI sentiment analysis
+        const reviewReq = await db.query('SELECT questions FROM review_requests WHERE id = $1', [requestId]);
+        if (reviewReq.rows.length > 0) {
+            const questions = reviewReq.rows[0].questions || [];
+            const textQuestions = questions.filter(q => q.type === 'TEXT_BASED');
+            if (textQuestions.length > 0) {
+                // Collect all text answers
+                const textAnswers = textQuestions
+                    .map(q => answers[q.id])
+                    .filter(a => a && typeof a === 'string' && a.trim().length > 0);
+                if (textAnswers.length > 0) {
+                    const combinedText = textAnswers.join(' ');
+                    // Fire-and-forget — do NOT block the response
+                    processResponseSentiment(responseId, combinedText).catch(err => {
+                        console.error('[Sentiment] Background processing error:', err.message);
+                    });
+                }
+            }
+        }
 
         // Audit: Review Response
         await req.audit('REVIEW_RESPONSE', requestId, {
