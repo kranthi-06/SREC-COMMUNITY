@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { MessageSquare, Heart, Share2, Image as ImageIcon, FileText, Send, Trash2, Link as LinkIcon, AlertCircle, Plus, X, ImageOff, Video } from 'lucide-react';
+import { MessageSquare, Heart, Share2, Image as ImageIcon, FileText, Send, Trash2, Link as LinkIcon, AlertCircle, Plus, X, ImageOff, Video, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 
 /**
  * Resolves media URL properly.
@@ -315,6 +315,206 @@ const Community = () => {
     );
 };
 
+/**
+ * Instagram-Style Video Player
+ * - Autoplay on scroll into view, pause on scroll out
+ * - Muted by default with speaker toggle
+ * - Tap to play/pause with animated overlay icon
+ * - Slim progress bar at bottom
+ * - Looping playback
+ */
+const InstaVideoPlayer = ({ src }) => {
+    const videoRef = useRef(null);
+    const containerRef = useRef(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isMuted, setIsMuted] = useState(true);
+    const [progress, setProgress] = useState(0);
+    const [showPlayIcon, setShowPlayIcon] = useState(false);
+    const playIconTimeout = useRef(null);
+
+    // Autoplay on scroll into view
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        video.play().then(() => setIsPlaying(true)).catch(() => { });
+                    } else {
+                        video.pause();
+                        setIsPlaying(false);
+                    }
+                });
+            },
+            { threshold: 0.6 }
+        );
+
+        observer.observe(containerRef.current);
+        return () => observer.disconnect();
+    }, []);
+
+    // Progress bar update
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        const updateProgress = () => {
+            if (video.duration) {
+                setProgress((video.currentTime / video.duration) * 100);
+            }
+        };
+
+        video.addEventListener('timeupdate', updateProgress);
+        return () => video.removeEventListener('timeupdate', updateProgress);
+    }, []);
+
+    const togglePlay = () => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        if (video.paused) {
+            video.play().then(() => setIsPlaying(true)).catch(() => { });
+        } else {
+            video.pause();
+            setIsPlaying(false);
+        }
+
+        // Show play/pause icon briefly
+        setShowPlayIcon(true);
+        clearTimeout(playIconTimeout.current);
+        playIconTimeout.current = setTimeout(() => setShowPlayIcon(false), 800);
+    };
+
+    const toggleMute = (e) => {
+        e.stopPropagation();
+        const video = videoRef.current;
+        if (!video) return;
+        video.muted = !video.muted;
+        setIsMuted(video.muted);
+    };
+
+    const handleProgressClick = (e) => {
+        e.stopPropagation();
+        const video = videoRef.current;
+        if (!video || !video.duration) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const percent = clickX / rect.width;
+        video.currentTime = percent * video.duration;
+    };
+
+    return (
+        <div
+            ref={containerRef}
+            onClick={togglePlay}
+            style={{
+                background: '#000',
+                position: 'relative',
+                cursor: 'pointer',
+                userSelect: 'none',
+                overflow: 'hidden',
+            }}
+        >
+            <video
+                ref={videoRef}
+                src={src}
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                style={{
+                    width: '100%',
+                    maxHeight: '650px',
+                    display: 'block',
+                    objectFit: 'contain',
+                    outline: 'none',
+                }}
+            />
+
+            {/* Tap Play/Pause Icon Overlay */}
+            <AnimatePresence>
+                {showPlayIcon && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.5 }}
+                        transition={{ duration: 0.2 }}
+                        style={{
+                            position: 'absolute',
+                            top: '50%', left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: '70px', height: '70px',
+                            borderRadius: '50%',
+                            background: 'rgba(0, 0, 0, 0.45)',
+                            backdropFilter: 'blur(6px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            pointerEvents: 'none',
+                        }}
+                    >
+                        {isPlaying ? (
+                            <Pause size={30} color="white" fill="white" />
+                        ) : (
+                            <Play size={30} color="white" fill="white" style={{ marginLeft: '3px' }} />
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Mute/Unmute Button — bottom right */}
+            <button
+                onClick={toggleMute}
+                style={{
+                    position: 'absolute',
+                    bottom: '16px', right: '12px',
+                    width: '32px', height: '32px',
+                    borderRadius: '50%',
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    backdropFilter: 'blur(4px)',
+                    border: 'none',
+                    color: 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 5,
+                    transition: 'transform 0.15s',
+                }}
+                onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.15)'}
+                onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+                {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            </button>
+
+            {/* Progress Bar — slim, at very bottom */}
+            <div
+                onClick={handleProgressClick}
+                style={{
+                    position: 'absolute',
+                    bottom: 0, left: 0, right: 0,
+                    height: '3px',
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    cursor: 'pointer',
+                    zIndex: 5,
+                }}
+            >
+                <div
+                    style={{
+                        height: '100%',
+                        width: `${progress}%`,
+                        background: 'white',
+                        borderRadius: '2px',
+                        transition: 'width 0.1s linear',
+                    }}
+                />
+            </div>
+        </div>
+    );
+};
+
 const PostCard = ({ post, user, isAdmin, onLike, onDelete, onLoadComments, isActiveComments, comments, newComment, setNewComment, onAddComment }) => {
     const isAuthor = post.author_name === user?.fullName;
 
@@ -373,15 +573,7 @@ const PostCard = ({ post, user, isAdmin, onLike, onDelete, onLoadComments, isAct
             )}
 
             {post.video_url && (
-                <div style={{ background: '#000', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                    <video
-                        src={getMediaUrl(post.video_url)}
-                        controls
-                        style={{ width: '100%', maxHeight: '600px', outline: 'none' }}
-                        preload="metadata"
-                        playsInline
-                    />
-                </div>
+                <InstaVideoPlayer src={getMediaUrl(post.video_url)} />
             )}
 
             {/* Content Area */}
