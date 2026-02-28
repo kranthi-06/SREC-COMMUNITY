@@ -338,7 +338,8 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sentimentFilter, setSentimentFilter] = useState('all');
     const [reanalyzing, setReanalyzing] = useState(false);
-    const [autoRefresh, setAutoRefresh] = useState(true);
+    const [batchProcessing, setBatchProcessing] = useState(false);
+    const batchProcessingRef = React.useRef(false);
 
     // Determine mode: 'import' or 'review'
     const mode = datasetId ? 'import' : 'review';
@@ -349,19 +350,58 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
         setError('');
         setSearchTerm('');
         setSentimentFilter('all');
+        batchProcessingRef.current = false;
+        setBatchProcessing(false);
         fetchAnalysis();
     }, [datasetId, requestId]);
 
-    // Auto-refresh while processing (only for imported datasets)
+    // Client-driven batch processing: when dataset is 'processing', drive it
     useEffect(() => {
-        if (mode !== 'import' || !autoRefresh || !data) return;
-        if (data.dataset.status === 'complete' || data.dataset.status === 'error') {
-            setAutoRefresh(false);
-            return;
+        if (mode !== 'import' || !data) return;
+        if (data.dataset.status === 'processing' && !batchProcessingRef.current) {
+            runBatchProcessing();
         }
-        const interval = setInterval(fetchAnalysis, 5000);
-        return () => clearInterval(interval);
-    }, [autoRefresh, data, mode]);
+    }, [data, mode]);
+
+    // Cleanup: stop batch processing when component unmounts
+    useEffect(() => {
+        return () => { batchProcessingRef.current = false; };
+    }, []);
+
+    /**
+     * Client-driven batch processing loop.
+     * Calls /process-batch repeatedly until done.
+     * Each call processes 10 rows on the server.
+     */
+    const runBatchProcessing = async () => {
+        if (batchProcessingRef.current) return; // Already running
+        batchProcessingRef.current = true;
+        setBatchProcessing(true);
+
+        try {
+            let done = false;
+            while (!done && batchProcessingRef.current) {
+                const res = await axios.post(`${API_URL}/import/process-batch/${datasetId}`);
+                const result = res.data;
+
+                done = result.done;
+
+                // Refresh the data to update progress
+                await fetchAnalysis();
+
+                if (!done) {
+                    // Small pause between batches
+                    await new Promise(r => setTimeout(r, 300));
+                }
+            }
+        } catch (err) {
+            console.error('Batch processing error:', err);
+            setError('Analysis paused. Click "Restart Analysis" to continue.');
+        } finally {
+            batchProcessingRef.current = false;
+            setBatchProcessing(false);
+        }
+    };
 
     const fetchAnalysis = async () => {
         try {
@@ -528,10 +568,12 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
     const handleReanalyze = async () => {
         if (mode !== 'import') return;
         setReanalyzing(true);
+        batchProcessingRef.current = false; // stop any running loop
+        setBatchProcessing(false);
         try {
             await axios.post(`${API_URL}/import/reanalyze/${datasetId}`);
-            setAutoRefresh(true);
-            fetchAnalysis();
+            // Refresh data — this will see status='processing' and trigger runBatchProcessing()
+            await fetchAnalysis();
         } catch (err) {
             setError('Failed to start re-analysis');
         } finally {
@@ -572,7 +614,7 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
 
     const { dataset, sentimentSummary, questionAnalysis, questionColumns, responses } = data;
     const totalResponses = responses.length;
-    const isProcessing = dataset.status === 'processing';
+    const isProcessing = dataset.status === 'processing' || batchProcessing;
     const progress = dataset.total_rows > 0 ? Math.round((dataset.analyzed_rows / dataset.total_rows) * 100) : 0;
     const isReviewMode = mode === 'review';
     const reviewMeta = data._reviewMeta;

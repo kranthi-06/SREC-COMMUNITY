@@ -15,5 +15,6 @@ router.get('/datasets', protect, adminOnly, importController.getDatasets);
 router.get('/dataset/:datasetId', protect, adminOnly, importController.getDatasetAnalysis);
 router.delete('/dataset/:datasetId', protect, adminOnly, importController.deleteDataset);
 router.post('/reanalyze/:datasetId', protect, adminOnly, importController.reanalyzeDataset);
+router.post('/process-batch/:datasetId', protect, adminOnly, importController.processBatch);
 
 module.exports = router;
