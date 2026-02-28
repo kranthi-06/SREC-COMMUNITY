@@ -5,9 +5,12 @@
  * then feeds the extracted text to Groq LLM to generate a rich
  * event description suitable for students.
  * 
+ * Images are compressed with sharp before OCR to fit under the 1MB free tier limit.
  * No WASM files needed — works on Vercel serverless.
  */
 const axios = require('axios');
+let sharp;
+try { sharp = require('sharp'); } catch (e) { sharp = null; }
 let Groq;
 try { Groq = require('groq-sdk'); } catch (e) { Groq = null; }
 
@@ -21,8 +24,54 @@ function getGroqClient() {
 }
 
 /**
+ * Compress image to fit under OCR.space's 1MB limit.
+ * @param {Buffer} imageBuffer - Raw image bytes
+ * @returns {Promise<Buffer>} Compressed image buffer
+ */
+async function compressImage(imageBuffer) {
+    if (!sharp) {
+        console.log('[OCR] sharp not available, using original image');
+        return imageBuffer;
+    }
+
+    const MAX_SIZE = 900 * 1024; // 900KB to stay safely under 1MB
+
+    // If already small enough, return as-is
+    if (imageBuffer.length <= MAX_SIZE) {
+        return imageBuffer;
+    }
+
+    console.log(`[OCR] Compressing image from ${(imageBuffer.length / 1024).toFixed(0)}KB...`);
+
+    // Resize and compress as JPEG
+    let compressed = await sharp(imageBuffer)
+        .resize(1500, 1500, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 70 })
+        .toBuffer();
+
+    // If still too large, reduce quality further
+    if (compressed.length > MAX_SIZE) {
+        compressed = await sharp(imageBuffer)
+            .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 50 })
+            .toBuffer();
+    }
+
+    // Last resort: very small
+    if (compressed.length > MAX_SIZE) {
+        compressed = await sharp(imageBuffer)
+            .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 40 })
+            .toBuffer();
+    }
+
+    console.log(`[OCR] Compressed to ${(compressed.length / 1024).toFixed(0)}KB`);
+    return compressed;
+}
+
+/**
  * Extract text from an image buffer using OCR.space free API.
- * Free tier: 25,000 requests/month, no API key needed for basic use.
+ * Free tier: 25,000 requests/month, 1MB file size limit.
  * @param {Buffer} imageBuffer - Raw image bytes
  * @returns {Promise<string>} Extracted text
  */
@@ -30,7 +79,9 @@ async function extractTextFromImage(imageBuffer) {
     try {
         console.log('[OCR] Starting text extraction via OCR.space API...');
 
-        const base64Image = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+        // Compress image to fit under 1MB limit
+        const compressed = await compressImage(imageBuffer);
+        const base64Image = `data:image/jpeg;base64,${compressed.toString('base64')}`;
 
         const response = await axios.post('https://api.ocr.space/parse/image',
             new URLSearchParams({
