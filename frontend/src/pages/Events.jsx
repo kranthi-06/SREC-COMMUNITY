@@ -428,17 +428,7 @@ const Events = () => {
                                     </p>
                                 </div>
 
-                                {/* Modal Action */}
-                                <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-                                    <Link
-                                        to={`/event/${encodeURIComponent(modalEvent.title)}`}
-                                        className="btn btn-primary"
-                                        style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '14px', fontSize: '1rem' }}
-                                        onClick={() => setModalEvent(null)}
-                                    >
-                                        <MessagesSquare size={18} /> View Reviews
-                                    </Link>
-                                </div>
+
                             </div>
                         </motion.div>
                     </motion.div>
