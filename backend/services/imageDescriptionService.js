@@ -1,11 +1,13 @@
 /**
  * Image Description Service — OCR + Groq AI
  * ============================================
- * Extracts text from event poster images using Tesseract.js OCR,
+ * Extracts text from event poster images using OCR.space free API,
  * then feeds the extracted text to Groq LLM to generate a rich
  * event description suitable for students.
+ * 
+ * No WASM files needed — works on Vercel serverless.
  */
-const Tesseract = require('tesseract.js');
+const axios = require('axios');
 let Groq;
 try { Groq = require('groq-sdk'); } catch (e) { Groq = null; }
 
@@ -19,26 +21,49 @@ function getGroqClient() {
 }
 
 /**
- * Extract text from an image buffer using Tesseract.js OCR.
+ * Extract text from an image buffer using OCR.space free API.
+ * Free tier: 25,000 requests/month, no API key needed for basic use.
  * @param {Buffer} imageBuffer - Raw image bytes
  * @returns {Promise<string>} Extracted text
  */
 async function extractTextFromImage(imageBuffer) {
     try {
-        console.log('[OCR] Starting text extraction from image...');
-        const { data: { text } } = await Tesseract.recognize(imageBuffer, 'eng', {
-            logger: (m) => {
-                if (m.status === 'recognizing text') {
-                    console.log(`[OCR] Progress: ${Math.round(m.progress * 100)}%`);
-                }
+        console.log('[OCR] Starting text extraction via OCR.space API...');
+
+        const base64Image = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+
+        const response = await axios.post('https://api.ocr.space/parse/image',
+            new URLSearchParams({
+                base64Image: base64Image,
+                language: 'eng',
+                isOverlayRequired: 'false',
+                detectOrientation: 'true',
+                scale: 'true',
+                OCREngine: '2',
+            }).toString(),
+            {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'apikey': process.env.OCR_SPACE_API_KEY || 'helloworld', // free API key
+                },
+                timeout: 30000, // 30 second timeout
             }
-        });
-        const cleanedText = text.trim();
-        console.log(`[OCR] Extracted ${cleanedText.length} characters of text`);
-        return cleanedText;
+        );
+
+        if (response.data.IsErroredOnProcessing) {
+            throw new Error(response.data.ErrorMessage?.[0] || 'OCR processing failed');
+        }
+
+        const text = response.data.ParsedResults
+            ?.map(r => r.ParsedText)
+            .join('\n')
+            .trim() || '';
+
+        console.log(`[OCR] Extracted ${text.length} characters of text`);
+        return text;
     } catch (error) {
         console.error('[OCR] Text extraction failed:', error.message);
-        throw new Error('Failed to extract text from image');
+        throw new Error('Failed to extract text from image: ' + error.message);
     }
 }
 
@@ -100,12 +125,12 @@ Generate ONLY the event description text, nothing else. No quotes, no labels, ju
 }
 
 /**
- * Full pipeline: Image → OCR → AI Description
+ * Full pipeline: Image → OCR API → AI Description
  * @param {Buffer} imageBuffer - Raw image bytes
  * @returns {Promise<{description: string, extractedText: string}>}
  */
 async function generateDescriptionFromImage(imageBuffer) {
-    // Step 1: Extract text via OCR
+    // Step 1: Extract text via OCR.space API
     const extractedText = await extractTextFromImage(imageBuffer);
 
     if (!extractedText || extractedText.length < 3) {
