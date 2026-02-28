@@ -146,33 +146,43 @@ ${extractedText}
 
 Generate ONLY the event description text, nothing else. No quotes, no labels, just the description paragraph.`;
 
-    try {
-        console.log('[AI] Generating event description with Groq...');
-        const response = await client.chat.completions.create({
-            messages: [
-                {
-                    role: 'system',
-                    content: 'You are a college event description writer. Write concise, engaging descriptions based on poster text.'
-                },
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
-            model: 'llama3-8b-8192',
-            temperature: 0.7,
-            max_tokens: 300
-        });
+    // Try models in order — llama3-8b-8192 is decommissioned
+    const DESCRIPTION_MODELS = [
+        'llama-3.3-70b-versatile',           // Best for creative/descriptive writing
+        'llama-3.1-8b-instant',              // Fast fallback
+        'meta-llama/llama-4-scout-17b-16e-instruct' // Llama 4 backup
+    ];
 
-        const description = response.choices[0]?.message?.content?.trim();
-        if (!description) throw new Error('Empty response from Groq');
+    const messages = [
+        {
+            role: 'system',
+            content: 'You are a college event description writer. Write concise, engaging descriptions based on poster text.'
+        },
+        { role: 'user', content: prompt }
+    ];
 
-        console.log('[AI] ✅ Description generated successfully');
-        return description;
-    } catch (error) {
-        console.error('[AI] Description generation failed:', error.message);
-        throw new Error('Failed to generate description: ' + error.message);
+    for (const model of DESCRIPTION_MODELS) {
+        try {
+            console.log(`[AI] Generating event description with ${model}...`);
+            const response = await client.chat.completions.create({
+                messages,
+                model,
+                temperature: 0.7,
+                max_tokens: 300
+            });
+
+            const description = response.choices[0]?.message?.content?.trim();
+            if (!description) throw new Error('Empty response');
+
+            console.log(`[AI] ✅ Description generated via ${model}`);
+            return description;
+        } catch (error) {
+            console.error(`[AI] Model ${model} failed: ${error.message?.substring(0, 80)}`);
+            // Try next model
+        }
     }
+
+    throw new Error('All Groq models failed to generate description. Please try again.');
 }
 
 /**
