@@ -385,11 +385,30 @@ async function processDatasetSentiment(datasetId, csvData, columns, nameColKey) 
 
         const BATCH_SIZE = 5; // Process 5 rows in parallel
 
-        // Fast rule-based classifier for short/simple answers
+        // Fast rule-based classifier for short/simple answers + numeric ratings
         const quickClassify = (text) => {
             const lower = text.toLowerCase().trim();
-            const positiveWords = ['good', 'great', 'excellent', 'amazing', 'awesome', 'wonderful', 'fantastic', 'love', 'best', 'happy', 'helpful', 'thank', 'perfect', 'outstanding', 'yes', 'agree', 'satisfied'];
-            const negativeWords = ['bad', 'poor', 'terrible', 'worst', 'hate', 'awful', 'horrible', 'disappointed', 'useless', 'waste', 'boring', 'frustrating', 'no', 'disagree', 'fail', 'needs improvement'];
+
+            // Handle numeric ratings (1-5 or 1-10 scale)
+            const num = parseFloat(lower);
+            if (!isNaN(num) && lower.match(/^\d+(\.\d+)?$/)) {
+                if (num >= 4) return { sentiment_label: 'Positive', sentiment_score: 0.7, confidence: 0.8 };
+                if (num >= 3) return { sentiment_label: 'Neutral', sentiment_score: 0.0, confidence: 0.7 };
+                return { sentiment_label: 'Negative', sentiment_score: -0.6, confidence: 0.8 };
+            }
+
+            // Exact match for common short answers
+            const exactPositive = ['yes', 'good', 'great', 'excellent', 'amazing', 'awesome', 'love', 'perfect', 'agree', 'strongly agree', 'satisfied', 'very satisfied', 'true', 'definitely', 'absolutely', 'sure', 'of course'];
+            const exactNegative = ['no', 'bad', 'poor', 'terrible', 'worst', 'hate', 'awful', 'disagree', 'strongly disagree', 'dissatisfied', 'false', 'never', 'not at all', 'needs improvement'];
+            const exactNeutral = ['maybe', 'average', 'okay', 'ok', 'neutral', 'not sure', 'sometimes', 'moderate', 'fair', 'somewhat'];
+
+            if (exactPositive.includes(lower)) return { sentiment_label: 'Positive', sentiment_score: 0.65, confidence: 0.8 };
+            if (exactNegative.includes(lower)) return { sentiment_label: 'Negative', sentiment_score: -0.65, confidence: 0.8 };
+            if (exactNeutral.includes(lower)) return { sentiment_label: 'Neutral', sentiment_score: 0.0, confidence: 0.7 };
+
+            // Keyword-based for longer short text
+            const positiveWords = ['good', 'great', 'excellent', 'amazing', 'awesome', 'wonderful', 'fantastic', 'love', 'best', 'happy', 'helpful', 'thank', 'perfect', 'outstanding', 'yes', 'agree', 'satisfied', 'recommend', 'informative', 'well', 'enjoyed', 'useful', 'nice', 'brilliant'];
+            const negativeWords = ['bad', 'poor', 'terrible', 'worst', 'hate', 'awful', 'horrible', 'disappointed', 'useless', 'waste', 'boring', 'frustrating', 'no', 'disagree', 'fail', 'needs improvement', 'not good', 'not satisfied', 'lacking', 'weak'];
 
             let pos = 0, neg = 0;
             positiveWords.forEach(w => { if (lower.includes(w)) pos++; });
@@ -407,11 +426,11 @@ async function processDatasetSentiment(datasetId, csvData, columns, nameColKey) 
 
             for (const col of textColumns) {
                 const value = (row[col] || '').trim();
-                if (value.length > 3) {
+                if (value.length >= 1) { // Analyze ALL non-empty values (was >3, skipping "Yes", "No", "5")
                     try {
                         let result;
-                        // Use fast classifier for short answers (<= 30 chars), Groq for longer text
-                        if (value.length <= 30) {
+                        // Use fast classifier for short answers (<= 50 chars), Groq for longer text
+                        if (value.length <= 50) {
                             result = quickClassify(value);
                         } else {
                             result = await analyzeSentimentWithGroq(value);

@@ -385,13 +385,31 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                 const classifyOption = (answer) => {
                     if (!answer) return null;
                     const lower = String(answer).toLowerCase().trim();
-                    const positiveWords = ['good', 'great', 'excellent', 'amazing', 'yes', 'agree', 'strongly agree', 'satisfied', 'very satisfied', 'love', 'awesome', '5', '4'];
-                    const negativeWords = ['bad', 'poor', 'terrible', 'no', 'disagree', 'strongly disagree', 'dissatisfied', 'very dissatisfied', 'needs improvement', 'worst', '1'];
-                    const neutralWords = ['average', 'okay', 'ok', 'neutral', 'maybe', 'not sure', '3', '2'];
+                    if (!lower) return null;
 
-                    if (positiveWords.some(w => lower === w || lower.includes(w))) return 'Positive';
-                    if (negativeWords.some(w => lower === w || lower.includes(w))) return 'Negative';
-                    if (neutralWords.some(w => lower === w || lower.includes(w))) return 'Neutral';
+                    // Handle numeric ratings
+                    const num = parseFloat(lower);
+                    if (!isNaN(num) && lower.match(/^\d+(\.\d+)?$/)) {
+                        if (num >= 4) return 'Positive';
+                        if (num >= 3) return 'Neutral';
+                        return 'Negative';
+                    }
+
+                    // Exact match for common short answers
+                    const exactPositive = ['yes', 'good', 'great', 'excellent', 'amazing', 'awesome', 'love', 'perfect', 'agree', 'strongly agree', 'satisfied', 'very satisfied', 'true', 'definitely', 'absolutely', 'sure'];
+                    const exactNegative = ['no', 'bad', 'poor', 'terrible', 'worst', 'hate', 'awful', 'disagree', 'strongly disagree', 'dissatisfied', 'false', 'never', 'needs improvement'];
+                    const exactNeutral = ['maybe', 'average', 'okay', 'ok', 'neutral', 'not sure', 'sometimes', 'moderate', 'fair'];
+
+                    if (exactPositive.includes(lower)) return 'Positive';
+                    if (exactNegative.includes(lower)) return 'Negative';
+                    if (exactNeutral.includes(lower)) return 'Neutral';
+
+                    // Keyword-based
+                    const positiveWords = ['good', 'great', 'excellent', 'amazing', 'awesome', 'wonderful', 'helpful', 'thank', 'perfect', 'outstanding', 'recommend', 'informative', 'useful', 'enjoyed', 'nice', 'well'];
+                    const negativeWords = ['bad', 'poor', 'terrible', 'worst', 'hate', 'awful', 'horrible', 'disappointed', 'useless', 'waste', 'boring', 'frustrating', 'fail', 'lacking', 'weak', 'not good'];
+
+                    if (positiveWords.some(w => lower.includes(w))) return 'Positive';
+                    if (negativeWords.some(w => lower.includes(w))) return 'Negative';
                     return 'Neutral';
                 };
 

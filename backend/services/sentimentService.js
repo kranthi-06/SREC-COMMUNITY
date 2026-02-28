@@ -185,7 +185,7 @@ async function batchAnalyze(requestId) {
         for (const row of responses.rows) {
             // Extract text from answers JSON
             const answers = row.answers || {};
-            const textAnswers = Object.values(answers).filter(a => typeof a === 'string' && a.length > 10);
+            const textAnswers = Object.values(answers).filter(a => typeof a === 'string' && a.trim().length >= 1);
             if (textAnswers.length > 0) {
                 const combinedText = textAnswers.join(' ');
                 await processResponseSentiment(row.id, combinedText);
