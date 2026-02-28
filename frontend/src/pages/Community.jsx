@@ -89,6 +89,7 @@ const Community = () => {
         // B2 Cloud Storage limit: 100MB per file
         const MAX_SIZE = 100 * 1024 * 1024;
         const VERCEL_LIMIT = 4 * 1024 * 1024; // 4MB — Vercel serverless body limit
+        const CHUNK_SIZE = 3 * 1024 * 1024; // 3MB chunks
         const checkSize = (file) => file && file.size > MAX_SIZE;
         if (checkSize(selectedImage) || checkSize(selectedVideo) || checkSize(selectedPdf)) {
             alert('File is too large. Maximum file size is 100MB.');
@@ -99,64 +100,50 @@ const Community = () => {
         setUploadProgress(0);
 
         try {
-            // Check if any file exceeds Vercel's 4.5MB limit — use direct B2 upload
+            // Check if any file exceeds Vercel's 4.5MB limit — use chunked upload
             const hasLargeFile = [selectedImage, selectedVideo, selectedPdf].some(f => f && f.size > VERCEL_LIMIT);
 
             if (hasLargeFile) {
-                // ─── DIRECT BROWSER-TO-B2 UPLOAD ───
-                // Uploads file directly to B2 via presigned URL, then creates post with URLs
-                let image_url = null, video_url = null, pdf_url = null;
-                let totalFileSize = 0;
+                // ─── CHUNKED UPLOAD (large files) ───
+                // Split file into 3MB chunks, upload each through the server, then finalize
+                const file = selectedVideo || selectedImage || selectedPdf;
+                const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
-                const uploadDirectToB2 = async (file, label) => {
-                    // Step 1: Get presigned upload URL from our API
-                    setUploadProgress(5);
-                    const urlRes = await axios.get(`${import.meta.env.VITE_API_URL}/posts/upload-url`, {
-                        params: { fileName: file.name, contentType: file.type }
+                // Step 1: Initialize upload session
+                setUploadProgress(2);
+                const initRes = await axios.post(`${import.meta.env.VITE_API_URL}/posts/upload/init`, {
+                    fileName: file.name,
+                    contentType: file.type,
+                    totalChunks,
+                    totalSize: file.size,
+                });
+                const { sessionId } = initRes.data;
+
+                // Step 2: Upload chunks sequentially
+                for (let i = 0; i < totalChunks; i++) {
+                    const start = i * CHUNK_SIZE;
+                    const end = Math.min(start + CHUNK_SIZE, file.size);
+                    const chunk = file.slice(start, end);
+
+                    const chunkForm = new FormData();
+                    chunkForm.append('sessionId', sessionId);
+                    chunkForm.append('chunkIndex', i.toString());
+                    chunkForm.append('chunk', chunk, `chunk_${i}`);
+
+                    await axios.post(`${import.meta.env.VITE_API_URL}/posts/upload/chunk`, chunkForm, {
+                        headers: { 'Content-Type': 'multipart/form-data' },
                     });
 
-                    const { uploadUrl, authorizationToken, fileName, downloadUrl } = urlRes.data;
+                    const percent = 5 + Math.round(((i + 1) / totalChunks) * 80);
+                    setUploadProgress(percent);
+                }
 
-                    // Step 2: Compute SHA1 hash
-                    setUploadProgress(10);
-                    const arrayBuffer = await file.arrayBuffer();
-                    const hashBuffer = await crypto.subtle.digest('SHA-1', arrayBuffer);
-                    const hashArray = Array.from(new Uint8Array(hashBuffer));
-                    const sha1Hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-                    // Step 3: Upload directly to B2
-                    await axios.post(uploadUrl, arrayBuffer, {
-                        headers: {
-                            'Authorization': authorizationToken,
-                            'X-Bz-File-Name': encodeURIComponent(fileName),
-                            'Content-Type': file.type,
-                            'X-Bz-Content-Sha1': sha1Hash,
-                            'X-Bz-Info-b2-content-disposition': `inline; filename="${file.name}"`,
-                        },
-                        onUploadProgress: (progressEvent) => {
-                            const percent = 10 + Math.round((progressEvent.loaded * 85) / progressEvent.total);
-                            setUploadProgress(percent);
-                        }
-                    });
-
-                    totalFileSize += file.size;
-                    return downloadUrl;
-                };
-
-                if (selectedImage) image_url = await uploadDirectToB2(selectedImage, 'image');
-                if (selectedVideo) video_url = await uploadDirectToB2(selectedVideo, 'video');
-                if (selectedPdf) pdf_url = await uploadDirectToB2(selectedPdf, 'pdf');
-
-                setUploadProgress(95);
-
-                // Step 4: Create the post record with the B2 URLs
-                await axios.post(`${import.meta.env.VITE_API_URL}/posts/create-with-urls`, {
+                // Step 3: Complete upload (server reassembles + uploads to B2 + creates post)
+                setUploadProgress(90);
+                await axios.post(`${import.meta.env.VITE_API_URL}/posts/upload/complete`, {
+                    sessionId,
                     content: newPost.content,
                     link_url: newPost.link_url || null,
-                    image_url,
-                    video_url,
-                    pdf_url,
-                    file_size: totalFileSize,
                 });
 
                 setUploadProgress(100);
