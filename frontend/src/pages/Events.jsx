@@ -209,15 +209,15 @@ const Events = () => {
                                         )}
                                     </div>
 
-                                    {/* Action Buttons for Students & Faculty */}
+                                    {/* View More Button */}
                                     <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-                                        <Link
-                                            to={`/event/${encodeURIComponent(evt.title)}`}
+                                        <button
+                                            onClick={() => setModalEvent(evt)}
                                             className="btn btn-primary"
-                                            style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '12px' }}
+                                            style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '12px', cursor: 'pointer', border: 'none' }}
                                         >
-                                            <MessagesSquare size={18} /> View Reviews
-                                        </Link>
+                                            <ChevronDown size={18} /> View More
+                                        </button>
                                     </div>
                                 </div>
                             </motion.div>
