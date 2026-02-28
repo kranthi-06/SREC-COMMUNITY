@@ -19,14 +19,26 @@ const crypto = require('crypto');
 const path = require('path');
 
 // ============================================
-// B2 CONFIGURATION
+// B2 CONFIGURATION (lazy-initialized)
 // ============================================
-const b2 = new B2({
-    applicationKeyId: process.env.B2_KEY_ID,
-    applicationKey: process.env.B2_APP_KEY,
-});
+let b2 = null;
 
-const BUCKET_NAME = process.env.B2_BUCKET_NAME || 'college-videos';
+const getB2Client = () => {
+    if (!b2) {
+        b2 = new B2({
+            applicationKeyId: process.env.B2_KEY_ID,
+            applicationKey: process.env.B2_APP_KEY,
+        });
+    }
+    return b2;
+};
+
+let BUCKET_NAME = null;
+const getBucketName = () => {
+    if (!BUCKET_NAME) BUCKET_NAME = process.env.B2_BUCKET_NAME || 'college-videos';
+    return BUCKET_NAME;
+};
+
 let bucketId = null;
 let downloadUrl = null;
 let authToken = null;
@@ -68,31 +80,38 @@ const authorize = async () => {
     }
 
     try {
-        const authResponse = await b2.authorize();
+        // Debug: Log whether env vars are loaded
+        const keyId = process.env.B2_KEY_ID;
+        const appKey = process.env.B2_APP_KEY;
+        console.log(`[B2 Auth] Key ID loaded: ${keyId ? keyId.substring(0, 8) + '...' : 'MISSING'}`);
+        console.log(`[B2 Auth] App Key loaded: ${appKey ? appKey.substring(0, 8) + '...' : 'MISSING'}`);
+        console.log(`[B2 Auth] Bucket Name: ${getBucketName()}`);
+
+        const authResponse = await getB2Client().authorize();
         downloadUrl = authResponse.data.downloadUrl;
         authToken = authResponse.data.authorizationToken;
         lastAuthTime = now;
 
         // Get bucket ID
-        const buckets = await b2.listBuckets();
-        const bucket = buckets.data.buckets.find(b => b.bucketName === BUCKET_NAME);
+        const buckets = await getB2Client().listBuckets();
+        const bucket = buckets.data.buckets.find(b => b.bucketName === getBucketName());
         if (!bucket) {
-            throw new Error(`Bucket "${BUCKET_NAME}" not found. Available: ${buckets.data.buckets.map(b => b.bucketName).join(', ')}`);
+            throw new Error(`Bucket "${getBucketName()}" not found. Available: ${buckets.data.buckets.map(b => b.bucketName).join(', ')}`);
         }
         bucketId = bucket.bucketId;
 
         // Get upload URL
-        const uploadUrlResponse = await b2.getUploadUrl({ bucketId });
+        const uploadUrlResponse = await getB2Client().getUploadUrl({ bucketId });
         uploadUrl = uploadUrlResponse.data.uploadUrl;
         uploadAuthToken = uploadUrlResponse.data.authorizationToken;
 
-        console.log(`✅ B2 authorized. Bucket: ${BUCKET_NAME} (${bucketId})`);
+        console.log(`✅ B2 authorized. Bucket: ${getBucketName()} (${bucketId})`);
     } catch (error) {
-        console.error('❌ B2 Authorization failed:', error.message);
+        console.error('❌ B2 Authorization failed:', error.response?.data || error.message);
         // Reset cached values so next call retries
         authToken = null;
         lastAuthTime = 0;
-        throw error;
+        throw new Error(`B2 storage unavailable: ${error.response?.data?.message || error.message}`);
     }
 };
 
@@ -156,9 +175,9 @@ const uploadFile = async (buffer, originalName, mimeType, userId, role) => {
 
     try {
         // Get a fresh upload URL for each upload (B2 best practice)
-        const uploadUrlResponse = await b2.getUploadUrl({ bucketId });
+        const uploadUrlResponse = await getB2Client().getUploadUrl({ bucketId });
 
-        const response = await b2.uploadFile({
+        const response = await getB2Client().uploadFile({
             uploadUrl: uploadUrlResponse.data.uploadUrl,
             uploadAuthToken: uploadUrlResponse.data.authorizationToken,
             fileName,
@@ -171,7 +190,7 @@ const uploadFile = async (buffer, originalName, mimeType, userId, role) => {
             },
         });
 
-        const fileUrl = `${downloadUrl}/file/${BUCKET_NAME}/${fileName}`;
+        const fileUrl = `${downloadUrl}/file/${getBucketName()}/${fileName}`;
 
         console.log(`📤 B2 Upload: ${fileName} (${(buffer.length / 1024 / 1024).toFixed(2)}MB)`);
 
@@ -189,8 +208,8 @@ const uploadFile = async (buffer, originalName, mimeType, userId, role) => {
             lastAuthTime = 0;
             await authorize();
 
-            const uploadUrlResponse = await b2.getUploadUrl({ bucketId });
-            const response = await b2.uploadFile({
+            const uploadUrlResponse = await getB2Client().getUploadUrl({ bucketId });
+            const response = await getB2Client().uploadFile({
                 uploadUrl: uploadUrlResponse.data.uploadUrl,
                 uploadAuthToken: uploadUrlResponse.data.authorizationToken,
                 fileName,
@@ -199,7 +218,7 @@ const uploadFile = async (buffer, originalName, mimeType, userId, role) => {
                 hash: crypto.createHash('sha1').update(buffer).digest('hex'),
             });
 
-            const fileUrl = `${downloadUrl}/file/${BUCKET_NAME}/${fileName}`;
+            const fileUrl = `${downloadUrl}/file/${getBucketName()}/${fileName}`;
             return {
                 fileUrl,
                 fileId: response.data.fileId,
@@ -223,7 +242,7 @@ const deleteFile = async (fileName, fileId) => {
 
         // If we don't have fileId, look it up
         if (!fileId && fileName) {
-            const versions = await b2.listFileVersions({
+            const versions = await getB2Client().listFileVersions({
                 bucketId,
                 startFileName: fileName,
                 maxFileCount: 1,
@@ -237,7 +256,7 @@ const deleteFile = async (fileName, fileId) => {
             }
         }
 
-        await b2.deleteFileVersion({ fileId, fileName });
+        await getB2Client().deleteFileVersion({ fileId, fileName });
         console.log(`🗑️ B2 Deleted: ${fileName}`);
         return true;
     } catch (error) {
@@ -282,7 +301,7 @@ const checkUploadLimit = async (db, userId, role) => {
  */
 const getFileNameFromUrl = (url) => {
     if (!url) return null;
-    const marker = `/file/${BUCKET_NAME}/`;
+    const marker = `/file/${getBucketName()}/`;
     const idx = url.indexOf(marker);
     if (idx === -1) return null;
     return url.substring(idx + marker.length);
@@ -301,14 +320,14 @@ const getPresignedUploadUrl = async (userId, role, originalName, mimeType) => {
     await authorize();
 
     const fileName = generateFilePath(userId, role, originalName, mimeType);
-    const uploadUrlResponse = await b2.getUploadUrl({ bucketId });
+    const uploadUrlResponse = await getB2Client().getUploadUrl({ bucketId });
 
     return {
         uploadUrl: uploadUrlResponse.data.uploadUrl,
         authorizationToken: uploadUrlResponse.data.authorizationToken,
         fileName,
         bucketId,
-        downloadUrl: `${downloadUrl}/file/${BUCKET_NAME}/${fileName}`,
+        downloadUrl: `${downloadUrl}/file/${getBucketName()}/${fileName}`,
     };
 };
 
