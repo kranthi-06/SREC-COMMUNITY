@@ -88,6 +88,7 @@ const Community = () => {
 
         // B2 Cloud Storage limit: 100MB per file
         const MAX_SIZE = 100 * 1024 * 1024;
+        const VERCEL_LIMIT = 4 * 1024 * 1024; // 4MB — Vercel serverless body limit
         const checkSize = (file) => file && file.size > MAX_SIZE;
         if (checkSize(selectedImage) || checkSize(selectedVideo) || checkSize(selectedPdf)) {
             alert('File is too large. Maximum file size is 100MB.');
@@ -96,21 +97,87 @@ const Community = () => {
 
         setPosting(true);
         setUploadProgress(0);
-        const formData = new FormData();
-        formData.append('content', newPost.content);
-        if (newPost.link_url) formData.append('link_url', newPost.link_url);
-        if (selectedImage) formData.append('image', selectedImage);
-        if (selectedVideo) formData.append('video', selectedVideo);
-        if (selectedPdf) formData.append('pdf', selectedPdf);
 
         try {
-            await axios.post(`${import.meta.env.VITE_API_URL}/posts`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-                onUploadProgress: (progressEvent) => {
-                    const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                    setUploadProgress(percent);
-                }
-            });
+            // Check if any file exceeds Vercel's 4.5MB limit — use direct B2 upload
+            const hasLargeFile = [selectedImage, selectedVideo, selectedPdf].some(f => f && f.size > VERCEL_LIMIT);
+
+            if (hasLargeFile) {
+                // ─── DIRECT BROWSER-TO-B2 UPLOAD ───
+                // Uploads file directly to B2 via presigned URL, then creates post with URLs
+                let image_url = null, video_url = null, pdf_url = null;
+                let totalFileSize = 0;
+
+                const uploadDirectToB2 = async (file, label) => {
+                    // Step 1: Get presigned upload URL from our API
+                    setUploadProgress(5);
+                    const urlRes = await axios.get(`${import.meta.env.VITE_API_URL}/posts/upload-url`, {
+                        params: { fileName: file.name, contentType: file.type }
+                    });
+
+                    const { uploadUrl, authorizationToken, fileName, downloadUrl } = urlRes.data;
+
+                    // Step 2: Compute SHA1 hash
+                    setUploadProgress(10);
+                    const arrayBuffer = await file.arrayBuffer();
+                    const hashBuffer = await crypto.subtle.digest('SHA-1', arrayBuffer);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    const sha1Hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+                    // Step 3: Upload directly to B2
+                    await axios.post(uploadUrl, arrayBuffer, {
+                        headers: {
+                            'Authorization': authorizationToken,
+                            'X-Bz-File-Name': encodeURIComponent(fileName),
+                            'Content-Type': file.type,
+                            'X-Bz-Content-Sha1': sha1Hash,
+                            'X-Bz-Info-b2-content-disposition': `inline; filename="${file.name}"`,
+                        },
+                        onUploadProgress: (progressEvent) => {
+                            const percent = 10 + Math.round((progressEvent.loaded * 85) / progressEvent.total);
+                            setUploadProgress(percent);
+                        }
+                    });
+
+                    totalFileSize += file.size;
+                    return downloadUrl;
+                };
+
+                if (selectedImage) image_url = await uploadDirectToB2(selectedImage, 'image');
+                if (selectedVideo) video_url = await uploadDirectToB2(selectedVideo, 'video');
+                if (selectedPdf) pdf_url = await uploadDirectToB2(selectedPdf, 'pdf');
+
+                setUploadProgress(95);
+
+                // Step 4: Create the post record with the B2 URLs
+                await axios.post(`${import.meta.env.VITE_API_URL}/posts/create-with-urls`, {
+                    content: newPost.content,
+                    link_url: newPost.link_url || null,
+                    image_url,
+                    video_url,
+                    pdf_url,
+                    file_size: totalFileSize,
+                });
+
+                setUploadProgress(100);
+            } else {
+                // ─── STANDARD SERVER UPLOAD (small files) ───
+                const formData = new FormData();
+                formData.append('content', newPost.content);
+                if (newPost.link_url) formData.append('link_url', newPost.link_url);
+                if (selectedImage) formData.append('image', selectedImage);
+                if (selectedVideo) formData.append('video', selectedVideo);
+                if (selectedPdf) formData.append('pdf', selectedPdf);
+
+                await axios.post(`${import.meta.env.VITE_API_URL}/posts`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' },
+                    onUploadProgress: (progressEvent) => {
+                        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        setUploadProgress(percent);
+                    }
+                });
+            }
+
             setNewPost({ content: '', link_url: '' });
             setSelectedImage(null);
             setSelectedVideo(null);
@@ -119,9 +186,8 @@ const Community = () => {
             setUploadProgress(0);
             fetchPosts(1);
         } catch (error) {
-            const errorMsg = error.response?.data?.error || '';
-            const detailMsg = error.response?.data?.message || '';
-            alert('Error creating post: ' + errorMsg + (detailMsg ? ' (' + detailMsg + ')' : ''));
+            const errorMsg = error.response?.data?.error || error.message || 'Unknown error occurred.';
+            alert('Error creating post: ' + errorMsg);
         } finally {
             setPosting(false);
             setUploadProgress(0);

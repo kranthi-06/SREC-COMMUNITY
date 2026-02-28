@@ -288,12 +288,38 @@ const getFileNameFromUrl = (url) => {
     return url.substring(idx + marker.length);
 };
 
+/**
+ * Get a presigned upload URL for direct browser uploads.
+ * Returns uploadUrl, authToken, and the generated fileName.
+ */
+const getPresignedUploadUrl = async (userId, role, originalName, mimeType) => {
+    // Validate file type
+    if (!ALL_ALLOWED_TYPES.includes(mimeType)) {
+        throw new Error(`File type "${mimeType}" is not allowed.`);
+    }
+
+    await authorize();
+
+    const fileName = generateFilePath(userId, role, originalName, mimeType);
+    const uploadUrlResponse = await b2.getUploadUrl({ bucketId });
+
+    return {
+        uploadUrl: uploadUrlResponse.data.uploadUrl,
+        authorizationToken: uploadUrlResponse.data.authorizationToken,
+        fileName,
+        bucketId,
+        downloadUrl: `${downloadUrl}/file/${BUCKET_NAME}/${fileName}`,
+    };
+};
+
 module.exports = {
     authorize,
     uploadFile,
     deleteFile,
     checkUploadLimit,
     getFileNameFromUrl,
+    getPresignedUploadUrl,
+    generateFilePath,
     ALLOWED_VIDEO_TYPES,
     ALLOWED_IMAGE_TYPES,
     ALLOWED_PDF_TYPES,
