@@ -349,6 +349,14 @@ const getPresignedUploadUrl = async (userId, role, originalName, mimeType) => {
     };
 };
 
+/**
+ * Get auth token and download URL for proxying private files.
+ */
+const getAuthDetails = async () => {
+    await authorize();
+    return { authToken, downloadUrl, bucketName: getBucketName() };
+};
+
 module.exports = {
     authorize,
     uploadFile,
@@ -357,8 +365,10 @@ module.exports = {
     getFileNameFromUrl,
     getPresignedUploadUrl,
     generateFilePath,
+    getAuthDetails,
     ALLOWED_VIDEO_TYPES,
     ALLOWED_IMAGE_TYPES,
     ALLOWED_PDF_TYPES,
     MAX_FILE_SIZE,
 };
+

@@ -14,10 +14,22 @@ import ProfileRing from '../components/ProfileRing';
  */
 const getMediaUrl = (url) => {
     if (!url) return null;
-    // Already a data URI or full URL → use as-is
-    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
+    // Data URIs → use as-is
+    if (url.startsWith('data:')) return url;
+
+    // B2 URLs → proxy through our server (private bucket)
+    if (url.includes('backblazeb2.com/file/')) {
+        // Extract path after /file/{bucketName}/
+        const match = url.match(/\/file\/[^/]+\/(.+)$/);
+        if (match) {
+            const baseUrl = (import.meta.env.VITE_API_URL || '').replace('/api', '');
+            return `${baseUrl}/api/media/${match[1]}`;
+        }
     }
+
+    // Full URLs → use as-is
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+
     // Relative path → prepend backend base
     const baseUrl = (import.meta.env.VITE_API_URL || '').replace('/api', '');
     return `${baseUrl}${url}`;

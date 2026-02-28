@@ -122,6 +122,46 @@ app.use('/api/posts', require('./routes/postRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
 // ============================================
+// B2 MEDIA PROXY (for private bucket access)
+// ============================================
+const axios = require('axios');
+const b2Service = require('./services/b2Service');
+
+app.get('/api/media/*', async (req, res) => {
+    try {
+        // Extract the file path from the URL (everything after /api/media/)
+        const filePath = req.params[0];
+        if (!filePath) {
+            return res.status(400).json({ error: 'No file path specified' });
+        }
+
+        const { authToken: b2Auth, downloadUrl: b2DownloadUrl, bucketName } = await b2Service.getAuthDetails();
+        const fileUrl = `${b2DownloadUrl}/file/${bucketName}/${filePath}`;
+
+        // Proxy the request to B2 with auth
+        const b2Response = await axios.get(fileUrl, {
+            headers: { 'Authorization': b2Auth },
+            responseType: 'stream',
+            timeout: 30000,
+        });
+
+        // Forward content type and cache headers
+        res.set('Content-Type', b2Response.headers['content-type'] || 'application/octet-stream');
+        res.set('Content-Length', b2Response.headers['content-length']);
+        res.set('Cache-Control', 'public, max-age=86400'); // 24h cache
+        res.set('Accept-Ranges', 'bytes');
+
+        b2Response.data.pipe(res);
+    } catch (error) {
+        console.error('[Media Proxy] Error:', error.message);
+        if (error.response?.status === 404) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+        res.status(500).json({ error: 'Failed to load media' });
+    }
+});
+
+// ============================================
 // HEALTH CHECK
 // ============================================
 app.get('/api/health', async (req, res) => {
