@@ -794,15 +794,8 @@ main {
 
 /* ============================================
    PROFILE RING SYSTEM — Role-Based Animated Rings
-   Clean gradient border rings with flowing sweep
+   Static gradient rings + one-directional shimmer
    ============================================ */
-
-/* Animate the gradient origin angle smoothly */
-@property --ring-angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
-}
 
 /* Base ring wrapper */
 .profile-ring {
@@ -813,12 +806,13 @@ main {
   border-radius: 50%;
   flex-shrink: 0;
   padding: 3px;
+  overflow: hidden;
 }
 
 /* Inner circle — creates the visible gap between ring and avatar */
 .profile-ring__inner {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   border-radius: 50%;
   background: var(--bg-main, #0a0a14);
   display: flex;
@@ -832,40 +826,78 @@ main {
   background: #f5f3ee;
 }
 
-/* ---- ADMIN — Gold gradient, smooth flowing sweep ---- */
+/* Shimmer overlay — sweeps left to right across the ring */
+.profile-ring::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -150%;
+  width: 80%;
+  height: 200%;
+  z-index: 1;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* ---- ADMIN — Static gold gradient ring + gold shimmer ---- */
 .admin-ring {
-  background: conic-gradient(from var(--ring-angle),
-      #FFD700 0%, #FF8C00 25%, #FFD700 50%, #FFC107 75%, #FFD700 100%);
-  animation: ringFlow 3s ease-in-out infinite;
+  background: conic-gradient(from 135deg,
+      #FFD700, #FF8C00, #FFB700, #FFC107, #FFD700);
 }
 
-/* ---- AI ADMIN (BlackHat) — Neon purple, faster sweep ---- */
+.admin-ring::after {
+  background: linear-gradient(105deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.35) 50%,
+      transparent 70%);
+  animation: ringShimmer 3s ease-in-out infinite;
+}
+
+/* ---- AI ADMIN (BlackHat) — Static neon purple ring + purple shimmer ---- */
 .ai-ring {
-  background: conic-gradient(from var(--ring-angle),
-      #7C3AED 0%, #C084FC 25%, #A855F7 50%, #9333EA 75%, #7C3AED 100%);
-  animation: ringFlow 2s ease-in-out infinite;
+  background: conic-gradient(from 135deg,
+      #7C3AED, #C084FC, #A855F7, #9333EA, #7C3AED);
 }
 
-/* ---- FACULTY — Copper/bronze, slow sweep ---- */
+.ai-ring::after {
+  background: linear-gradient(105deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 70%);
+  animation: ringShimmer 2.2s ease-in-out infinite;
+}
+
+/* ---- FACULTY — Static copper/bronze ring + warm shimmer ---- */
 .faculty-ring {
-  background: conic-gradient(from var(--ring-angle),
-      #B87333 0%, #E6A856 25%, #CD7F32 50%, #D4944A 75%, #B87333 100%);
-  animation: ringFlow 4.5s ease-in-out infinite;
+  background: conic-gradient(from 135deg,
+      #B87333, #E6A856, #CD7F32, #D4944A, #B87333);
 }
 
-/* ---- STUDENT — Plain solid gray ring, no animation ---- */
+.faculty-ring::after {
+  background: linear-gradient(105deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.25) 50%,
+      transparent 70%);
+  animation: ringShimmer 4s ease-in-out infinite;
+}
+
+/* ---- STUDENT — Plain solid gray ring, no shimmer ---- */
 .student-ring {
   background: #9CA3AF;
 }
 
-/* Gradient origin flows around the ring — smooth sweep effect */
-@keyframes ringFlow {
+.student-ring::after {
+  display: none;
+}
+
+/* Shimmer sweeps from left to right across the ring */
+@keyframes ringShimmer {
   0% {
-    --ring-angle: 0deg;
+    left: -150%;
   }
 
   100% {
-    --ring-angle: 360deg;
+    left: 150%;
   }
 }
 
