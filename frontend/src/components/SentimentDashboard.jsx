@@ -684,24 +684,24 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                     {!isReviewMode && (
                         <button
                             onClick={handleReanalyze}
-                            disabled={reanalyzing || isProcessing}
+                            disabled={reanalyzing}
                             style={{
-                                background: 'rgba(139, 92, 246, 0.1)',
-                                border: '1px solid rgba(139, 92, 246, 0.2)',
+                                background: isProcessing ? 'rgba(245, 158, 11, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+                                border: `1px solid ${isProcessing ? 'rgba(245, 158, 11, 0.2)' : 'rgba(139, 92, 246, 0.2)'}`,
                                 borderRadius: '10px',
                                 padding: '10px 18px',
-                                color: '#8b5cf6',
-                                cursor: 'pointer',
+                                color: isProcessing ? '#f59e0b' : '#8b5cf6',
+                                cursor: reanalyzing ? 'not-allowed' : 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '8px',
                                 fontWeight: '700',
                                 fontSize: '0.85rem',
-                                opacity: (reanalyzing || isProcessing) ? 0.5 : 1
+                                opacity: reanalyzing ? 0.5 : 1
                             }}
                         >
-                            <RefreshCw size={16} style={reanalyzing ? { animation: 'spin 1s linear infinite' } : {}} />
-                            Re-analyze with AI
+                            <RefreshCw size={16} style={(reanalyzing || isProcessing) ? { animation: 'spin 1s linear infinite' } : {}} />
+                            {isProcessing ? 'Restart Analysis' : 'Re-analyze with AI'}
                         </button>
                     )}
                 </div>

@@ -373,65 +373,74 @@ function parseCSVLine(line) {
 
 /**
  * Background AI sentiment processing for an entire imported dataset.
- * Analyzes each row and each text column individually.
+ * Uses PARALLEL BATCH processing (5 rows at a time) for speed.
+ * Short answers use fast rule-based classification to avoid Groq calls.
  */
 async function processDatasetSentiment(datasetId, csvData, columns, nameColKey) {
     try {
         console.log(`[Import] Starting sentiment analysis for dataset ${datasetId} (${csvData.length} rows)...`);
 
-        // Identify text-heavy columns (columns that aren't just the name column)
         const textColumns = columns.filter(c => c !== nameColKey);
-
         let analyzedCount = 0;
 
-        for (let i = 0; i < csvData.length; i++) {
-            const row = csvData[i];
+        const BATCH_SIZE = 5; // Process 5 rows in parallel
+
+        // Fast rule-based classifier for short/simple answers
+        const quickClassify = (text) => {
+            const lower = text.toLowerCase().trim();
+            const positiveWords = ['good', 'great', 'excellent', 'amazing', 'awesome', 'wonderful', 'fantastic', 'love', 'best', 'happy', 'helpful', 'thank', 'perfect', 'outstanding', 'yes', 'agree', 'satisfied'];
+            const negativeWords = ['bad', 'poor', 'terrible', 'worst', 'hate', 'awful', 'horrible', 'disappointed', 'useless', 'waste', 'boring', 'frustrating', 'no', 'disagree', 'fail', 'needs improvement'];
+
+            let pos = 0, neg = 0;
+            positiveWords.forEach(w => { if (lower.includes(w)) pos++; });
+            negativeWords.forEach(w => { if (lower.includes(w)) neg++; });
+
+            if (pos > neg) return { sentiment_label: 'Positive', sentiment_score: Math.min(0.3 + pos * 0.15, 0.85), confidence: 0.6 };
+            if (neg > pos) return { sentiment_label: 'Negative', sentiment_score: Math.max(-0.3 - neg * 0.15, -0.85), confidence: 0.6 };
+            return { sentiment_label: 'Neutral', sentiment_score: 0, confidence: 0.5 };
+        };
+
+        // Process a single row
+        const processRow = async (row, rowIndex) => {
             const questionSentiments = {};
-            let overallTexts = [];
+            const scores = [];
 
             for (const col of textColumns) {
                 const value = (row[col] || '').trim();
-                if (value.length > 3) { // Only analyze meaningful text
+                if (value.length > 3) {
                     try {
-                        const result = await analyzeSentimentWithGroq(value);
+                        let result;
+                        // Use fast classifier for short answers (<= 30 chars), Groq for longer text
+                        if (value.length <= 30) {
+                            result = quickClassify(value);
+                        } else {
+                            result = await analyzeSentimentWithGroq(value);
+                        }
                         questionSentiments[col] = {
                             sentiment_label: result.sentiment_label,
                             sentiment_score: result.sentiment_score,
                             confidence: result.confidence
                         };
-                        overallTexts.push(value);
+                        scores.push(result.sentiment_score);
                     } catch (err) {
-                        console.error(`[Import] Error analyzing row ${i}, col ${col}:`, err.message);
-                        questionSentiments[col] = {
-                            sentiment_label: 'Neutral',
-                            sentiment_score: 0,
-                            confidence: 0
-                        };
+                        questionSentiments[col] = { sentiment_label: 'Neutral', sentiment_score: 0, confidence: 0 };
+                        scores.push(0);
                     }
                 }
             }
 
-            // Compute overall sentiment for this row
-            let overallResult = { sentiment_label: 'Neutral', sentiment_score: 0, confidence: 0 };
-            if (overallTexts.length > 0) {
-                const combinedText = overallTexts.join('. ');
-                try {
-                    overallResult = await analyzeSentimentWithGroq(combinedText);
-                } catch (err) {
-                    // fallback: average of question sentiments
-                    const qResults = Object.values(questionSentiments);
-                    if (qResults.length > 0) {
-                        const avgScore = qResults.reduce((s, q) => s + (q.sentiment_score || 0), 0) / qResults.length;
-                        overallResult = {
-                            sentiment_label: avgScore > 0.15 ? 'Positive' : avgScore < -0.15 ? 'Negative' : 'Neutral',
-                            sentiment_score: avgScore,
-                            confidence: 0.5
-                        };
-                    }
-                }
+            // Compute overall from column averages (no extra API call!)
+            let overallResult = { sentiment_label: 'Neutral', sentiment_score: 0, confidence: 0.5 };
+            if (scores.length > 0) {
+                const avgScore = scores.reduce((s, v) => s + v, 0) / scores.length;
+                overallResult = {
+                    sentiment_label: avgScore > 0.15 ? 'Positive' : avgScore < -0.15 ? 'Negative' : 'Neutral',
+                    sentiment_score: parseFloat(avgScore.toFixed(3)),
+                    confidence: 0.7
+                };
             }
 
-            // Update the response row
+            // Update DB
             await db.query(`
                 UPDATE imported_responses
                 SET sentiment_label = $2, sentiment_score = $3, ai_confidence = $4,
@@ -443,26 +452,36 @@ async function processDatasetSentiment(datasetId, csvData, columns, nameColKey) 
                 overallResult.sentiment_score,
                 overallResult.confidence,
                 JSON.stringify(questionSentiments),
-                i
+                rowIndex
             ]);
+        };
 
-            analyzedCount++;
+        // Process in parallel batches
+        for (let batchStart = 0; batchStart < csvData.length; batchStart += BATCH_SIZE) {
+            const batchEnd = Math.min(batchStart + BATCH_SIZE, csvData.length);
+            const batch = [];
 
-            // Update progress every 5 rows
-            if (analyzedCount % 5 === 0 || analyzedCount === csvData.length) {
-                await db.query(`
-                    UPDATE imported_datasets SET analyzed_rows = $2, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = $1
-                `, [datasetId, analyzedCount]);
+            for (let i = batchStart; i < batchEnd; i++) {
+                batch.push(processRow(csvData[i], i));
             }
 
-            // Add small delay to avoid rate limiting
-            if (i < csvData.length - 1) {
-                await new Promise(r => setTimeout(r, 200));
+            // Wait for the entire batch to complete
+            await Promise.all(batch);
+            analyzedCount += batch.length;
+
+            // Update progress after each batch
+            await db.query(`
+                UPDATE imported_datasets SET analyzed_rows = $2, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $1
+            `, [datasetId, analyzedCount]);
+
+            // Small delay between batches to avoid rate limiting
+            if (batchStart + BATCH_SIZE < csvData.length) {
+                await new Promise(r => setTimeout(r, 100));
             }
         }
 
-        // Generate AI summary for the entire dataset
+        // Generate AI summary
         let aiSummary = '';
         try {
             const summaryRows = await db.query(`
