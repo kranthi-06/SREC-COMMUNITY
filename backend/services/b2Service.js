@@ -92,13 +92,31 @@ const authorize = async () => {
         authToken = authResponse.data.authorizationToken;
         lastAuthTime = now;
 
-        // Get bucket ID
-        const buckets = await getB2Client().listBuckets();
-        const bucket = buckets.data.buckets.find(b => b.bucketName === getBucketName());
-        if (!bucket) {
-            throw new Error(`Bucket "${getBucketName()}" not found. Available: ${buckets.data.buckets.map(b => b.bucketName).join(', ')}`);
+        // Get bucket ID — try multiple strategies:
+        // 1. From env var (most reliable)
+        // 2. From authorize response (works for restricted application keys)
+        // 3. From listBuckets (requires listBuckets capability)
+        if (process.env.B2_BUCKET_ID) {
+            bucketId = process.env.B2_BUCKET_ID;
+            console.log(`[B2 Auth] Using bucket ID from env: ${bucketId}`);
+        } else if (authResponse.data.allowed?.bucketId) {
+            bucketId = authResponse.data.allowed.bucketId;
+            console.log(`[B2 Auth] Using bucket ID from auth response: ${bucketId}`);
+        } else {
+            // Fallback to listBuckets (requires listBuckets capability)
+            try {
+                const buckets = await getB2Client().listBuckets();
+                const bucket = buckets.data.buckets.find(b => b.bucketName === getBucketName());
+                if (bucket) {
+                    bucketId = bucket.bucketId;
+                } else {
+                    throw new Error(`Bucket "${getBucketName()}" not found.`);
+                }
+            } catch (listError) {
+                console.error('[B2 Auth] listBuckets failed (key may lack capability):', listError.message);
+                throw new Error('Cannot determine bucket ID. Set B2_BUCKET_ID env var or use a key with listBuckets capability.');
+            }
         }
-        bucketId = bucket.bucketId;
 
         // Get upload URL
         const uploadUrlResponse = await getB2Client().getUploadUrl({ bucketId });
