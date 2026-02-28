@@ -32,6 +32,7 @@ import {
     Sparkles
 } from 'lucide-react';
 import { getImageUrl } from '../utils/imageUtils';
+import ProfileRing from '../components/ProfileRing';
 
 
 const EventReviews = () => {
@@ -642,23 +643,25 @@ const EventReviews = () => {
                                     >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             {/* Student avatar */}
-                                            <div
-                                                style={{
-                                                    width: '42px',
-                                                    height: '42px',
-                                                    borderRadius: '50%',
-                                                    background: `linear-gradient(135deg, ${getSentimentColor(review.sentiment)}30, ${getSentimentColor(review.sentiment)}15)`,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    color: getSentimentColor(review.sentiment),
-                                                    fontWeight: '800',
-                                                    fontSize: '0.9rem',
-                                                    border: `1.5px solid ${getSentimentColor(review.sentiment)}40`,
-                                                }}
-                                            >
-                                                {(review.student_name || 'A').charAt(0).toUpperCase()}
-                                            </div>
+                                            <ProfileRing role="student" size={42}>
+                                                <div
+                                                    style={{
+                                                        width: '42px',
+                                                        height: '42px',
+                                                        borderRadius: '50%',
+                                                        background: `linear-gradient(135deg, ${getSentimentColor(review.sentiment)}30, ${getSentimentColor(review.sentiment)}15)`,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        color: getSentimentColor(review.sentiment),
+                                                        fontWeight: '800',
+                                                        fontSize: '0.9rem',
+                                                        border: `1.5px solid ${getSentimentColor(review.sentiment)}40`,
+                                                    }}
+                                                >
+                                                    {(review.student_name || 'A').charAt(0).toUpperCase()}
+                                                </div>
+                                            </ProfileRing>
                                             <div>
                                                 <div style={{ fontWeight: '700', fontSize: '1rem' }}>
                                                     {review.student_name || 'Anonymous'}
@@ -730,7 +733,7 @@ const EventReviews = () => {
                                     </div>
 
                                     {/* Review text */}
-                                    <p
+                                    < p
                                         style={{
                                             color: 'var(--text-main)',
                                             fontSize: '0.95rem',
@@ -743,10 +746,10 @@ const EventReviews = () => {
                                 </motion.div>
                             ))}
                         </AnimatePresence>
-                    </div>
-                </motion.div>
+                    </div >
+                </motion.div >
             )}
-        </motion.div>
+        </motion.div >
     );
 };
 

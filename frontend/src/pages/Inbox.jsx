@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Inbox as InboxIcon, Send, Clock, User as UserIcon, AlertCircle, FileText, CheckCircle } from 'lucide-react';
+import ProfileRing from '../components/ProfileRing';
 import { useAuth } from '../context/AuthContext';
 
 const Inbox = () => {
@@ -153,8 +154,20 @@ const Inbox = () => {
                                         return (
                                             <div key={msg.id || i} style={{ alignSelf: isMyMessage ? 'flex-end' : 'flex-start', maxWidth: '70%' }}>
                                                 {!isMyMessage && (
-                                                    <div style={{ fontSize: '0.75rem', color: 'var(--primary)', marginBottom: '4px', fontWeight: '700' }}>
-                                                        {msg.sender_name} ({msg.sender_role})
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                                                        <ProfileRing role={msg.sender_role} size={24}>
+                                                            <div style={{
+                                                                width: '24px', height: '24px', borderRadius: '50%',
+                                                                background: 'linear-gradient(135deg, var(--accent-green), var(--accent-olive))',
+                                                                color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                fontSize: '0.6rem', fontWeight: '800'
+                                                            }}>
+                                                                {(msg.sender_name || 'U').charAt(0).toUpperCase()}
+                                                            </div>
+                                                        </ProfileRing>
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '700' }}>
+                                                            {msg.sender_name} ({msg.sender_role})
+                                                        </span>
                                                     </div>
                                                 )}
                                                 <div style={{

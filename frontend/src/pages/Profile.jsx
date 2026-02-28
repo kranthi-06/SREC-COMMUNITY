@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Phone, ShieldCheck, MapPin, Edit3, Save, X, Briefcase, Hash, BadgeCheck } from 'lucide-react';
+import ProfileRing from '../components/ProfileRing';
 
 const Profile = () => {
     const { user, setUser } = useAuth();
@@ -77,17 +78,19 @@ const Profile = () => {
                     alignItems: 'center',
                     gap: '2rem'
                 }}>
-                    <div style={{
-                        width: '100px', height: '100px',
-                        background: 'linear-gradient(135deg, var(--accent-green), var(--accent-olive))',
-                        color: 'white',
-                        borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '2.5rem', fontWeight: '800',
-                        boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-                    }}>
-                        {profile.email.charAt(0).toUpperCase()}
-                    </div>
+                    <ProfileRing role={profile.role} size={100}>
+                        <div style={{
+                            width: '100px', height: '100px',
+                            background: 'linear-gradient(135deg, var(--accent-green), var(--accent-olive))',
+                            color: 'white',
+                            borderRadius: '50%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '2.5rem', fontWeight: '800',
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                        }}>
+                            {profile.email.charAt(0).toUpperCase()}
+                        </div>
+                    </ProfileRing>
                     <div>
                         <h2 style={{ fontSize: '2.2rem', marginBottom: '0.2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
                             {profile.full_name}

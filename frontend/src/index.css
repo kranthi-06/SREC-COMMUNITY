@@ -793,6 +793,83 @@ main {
 }
 
 /* ============================================
+   PROFILE RING SYSTEM — Role-Based Animated Rings
+   Clean gradient border rings with flowing sweep
+   ============================================ */
+
+/* Animate the gradient origin angle smoothly */
+@property --ring-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* Base ring wrapper */
+.profile-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  padding: 3px;
+}
+
+/* Inner circle — creates the visible gap between ring and avatar */
+.profile-ring__inner {
+  position: relative;
+  z-index: 1;
+  border-radius: 50%;
+  background: var(--bg-main, #0a0a14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 2px;
+}
+
+[data-theme='light'] .profile-ring__inner {
+  background: #f5f3ee;
+}
+
+/* ---- ADMIN — Gold gradient, smooth flowing sweep ---- */
+.admin-ring {
+  background: conic-gradient(from var(--ring-angle),
+      #FFD700 0%, #FF8C00 25%, #FFD700 50%, #FFC107 75%, #FFD700 100%);
+  animation: ringFlow 3s ease-in-out infinite;
+}
+
+/* ---- AI ADMIN (BlackHat) — Neon purple, faster sweep ---- */
+.ai-ring {
+  background: conic-gradient(from var(--ring-angle),
+      #7C3AED 0%, #C084FC 25%, #A855F7 50%, #9333EA 75%, #7C3AED 100%);
+  animation: ringFlow 2s ease-in-out infinite;
+}
+
+/* ---- FACULTY — Copper/bronze, slow sweep ---- */
+.faculty-ring {
+  background: conic-gradient(from var(--ring-angle),
+      #B87333 0%, #E6A856 25%, #CD7F32 50%, #D4944A 75%, #B87333 100%);
+  animation: ringFlow 4.5s ease-in-out infinite;
+}
+
+/* ---- STUDENT — Plain solid gray ring, no animation ---- */
+.student-ring {
+  background: #9CA3AF;
+}
+
+/* Gradient origin flows around the ring — smooth sweep effect */
+@keyframes ringFlow {
+  0% {
+    --ring-angle: 0deg;
+  }
+
+  100% {
+    --ring-angle: 360deg;
+  }
+}
+
+/* ============================================
    ANIMATIONS
    ============================================ */
 .float-element {

@@ -23,6 +23,7 @@ import Inbox from './pages/Inbox';
 import Community from './pages/Community';
 import Events from './pages/Events';
 import ErrorBoundary from './components/ErrorBoundary';
+import ProfileRing from './components/ProfileRing';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -180,9 +181,11 @@ function AppContent() {
                 <>
                   <li className="desktop-only">
                     <Link to="/dashboard/profile" className="user-profile-btn" id="nav-profile">
-                      <div className="avatar">
-                        {(user?.fullName || user?.email || 'U').charAt(0).toUpperCase()}
-                      </div>
+                      <ProfileRing role={user.role} size={28}>
+                        <div className="avatar">
+                          {(user?.fullName || user?.email || 'U').charAt(0).toUpperCase()}
+                        </div>
+                      </ProfileRing>
                       <span>{getShortName(user?.fullName || user?.email?.split('@')[0])}</span>
                       <RoleBadge role={user.role} />
                     </Link>
@@ -235,9 +238,11 @@ function AppContent() {
                 <div className="mobile-menu-content">
                   {user && (
                     <div className="mobile-user-info">
-                      <div className="avatar" style={{ width: '40px', height: '40px', fontSize: '1rem' }}>
-                        {(user?.fullName || user?.email || 'U').charAt(0).toUpperCase()}
-                      </div>
+                      <ProfileRing role={user.role} size={40}>
+                        <div className="avatar" style={{ width: '40px', height: '40px', fontSize: '1rem' }}>
+                          {(user?.fullName || user?.email || 'U').charAt(0).toUpperCase()}
+                        </div>
+                      </ProfileRing>
                       <div>
                         <div style={{ fontWeight: '700' }}>{getShortName(user?.fullName || user?.email?.split('@')[0])}</div>
                         <RoleBadge role={user.role} />

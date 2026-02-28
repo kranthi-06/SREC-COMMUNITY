@@ -3,6 +3,7 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { MessageSquare, Heart, Share2, Image as ImageIcon, FileText, Send, Trash2, Link as LinkIcon, AlertCircle, Plus, X, ImageOff, Video, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import ProfileRing from '../components/ProfileRing';
 
 /**
  * Resolves media URL properly.
@@ -528,14 +529,16 @@ const PostCard = ({ post, user, isAdmin, onLike, onDelete, onLoadComments, isAct
             {/* Header */}
             <div style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{
-                        width: '36px', height: '36px', borderRadius: '50%',
-                        background: 'linear-gradient(135deg, var(--accent-green), var(--accent-olive))',
-                        color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.9rem', fontWeight: '800'
-                    }}>
-                        {post.author_name.charAt(0).toUpperCase()}
-                    </div>
+                    <ProfileRing role={post.author_role} size={36}>
+                        <div style={{
+                            width: '36px', height: '36px', borderRadius: '50%',
+                            background: 'linear-gradient(135deg, var(--accent-green), var(--accent-olive))',
+                            color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '0.9rem', fontWeight: '800'
+                        }}>
+                            {post.author_name.charAt(0).toUpperCase()}
+                        </div>
+                    </ProfileRing>
                     <div>
                         <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {post.author_name}
