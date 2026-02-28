@@ -1,20 +1,28 @@
 /**
- * Post Controller — Community Posts System
- * ==========================================
- * CRUD for community posts with likes and comments.
- * Students can view/like/comment but cannot create posts.
+ * Post Controller — Community Posts System with B2 Cloud Storage
+ * ================================================================
+ * CRUD for community posts with Backblaze B2 media storage.
+ * Images, videos, and PDFs are uploaded to B2 cloud storage.
+ * Role-based upload limits are enforced.
  * All mutations are audit-logged.
  */
 const db = require('../db');
+const b2Service = require('../services/b2Service');
 
 /**
  * GET /api/posts
  * Get all community posts with like/comment counts.
+ * Supports pagination via ?page=1&limit=20
  */
 exports.getAllPosts = async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const offset = (page - 1) * limit;
+
         const query = `
-            SELECT p.id, p.content, p.image_url, p.video_url, p.link_url, p.pdf_url, p.created_at,
+            SELECT p.id, p.content, p.image_url, p.video_url, p.link_url, p.pdf_url, 
+                   p.file_size, p.created_at,
                    u.full_name as author_name, u.role as author_role,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes,
                    (SELECT COUNT(*) FROM post_comments WHERE post_id = p.id) as comments,
@@ -22,9 +30,24 @@ exports.getAllPosts = async (req, res) => {
             FROM posts p
             JOIN users u ON p.author_id = u.id
             ORDER BY p.created_at DESC
+            LIMIT $2 OFFSET $3
         `;
-        const result = await db.query(query, [req.user.userId]);
-        res.json(result.rows);
+        const result = await db.query(query, [req.user.userId, limit, offset]);
+
+        // Get total count for pagination
+        const countResult = await db.query('SELECT COUNT(*) as total FROM posts');
+        const total = parseInt(countResult.rows[0].total);
+
+        res.json({
+            posts: result.rows,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                hasMore: offset + limit < total,
+            }
+        });
     } catch (error) {
         console.error('Error fetching posts:', error);
         res.status(500).json({ error: 'Server error retrieving posts' });
@@ -34,33 +57,56 @@ exports.getAllPosts = async (req, res) => {
 /**
  * POST /api/posts
  * Create a new community post. Faculty+ only.
- * Images are converted to base64 data URIs for persistent storage.
+ * Media files are uploaded to Backblaze B2 cloud storage.
  */
 exports.createPost = async (req, res) => {
     try {
         const { content, link_url } = req.body;
+        const userId = req.user.userId;
+        const role = req.user.role;
+
         let image_url = null;
         let pdf_url = null;
         let video_url = null;
+        let totalFileSize = 0;
 
+        // Check upload limit if there are media files
+        if (req.files && (req.files.image || req.files.video || req.files.pdf)) {
+            const limitCheck = await b2Service.checkUploadLimit(db, userId, role);
+            if (!limitCheck.canUpload) {
+                return res.status(403).json({
+                    error: `Upload limit reached. You have used ${limitCheck.count}/${limitCheck.limit} media uploads. Delete existing posts to upload more.`
+                });
+            }
+        }
+
+        // Upload media files to B2
         if (req.files) {
-            // Convert media to base64 data URI for DB storage (Vercel persistence)
             if (req.files.image) {
-                const imageFile = req.files.image[0];
-                const imageBuffer = imageFile.buffer;
-                const mimeType = imageFile.mimetype || 'image/jpeg';
-                image_url = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+                const file = req.files.image[0];
+                const result = await b2Service.uploadFile(
+                    file.buffer, file.originalname, file.mimetype, userId, role
+                );
+                image_url = result.fileUrl;
+                totalFileSize += result.fileSize;
             }
 
             if (req.files.video) {
-                const videoFile = req.files.video[0];
-                const videoBuffer = videoFile.buffer;
-                const mimeType = videoFile.mimetype || 'video/mp4';
-                video_url = `data:${mimeType};base64,${videoBuffer.toString('base64')}`;
+                const file = req.files.video[0];
+                const result = await b2Service.uploadFile(
+                    file.buffer, file.originalname, file.mimetype, userId, role
+                );
+                video_url = result.fileUrl;
+                totalFileSize += result.fileSize;
             }
 
             if (req.files.pdf) {
-                pdf_url = `/uploads/${req.files.pdf[0].filename}`;
+                const file = req.files.pdf[0];
+                const result = await b2Service.uploadFile(
+                    file.buffer, file.originalname, file.mimetype, userId, role
+                );
+                pdf_url = result.fileUrl;
+                totalFileSize += result.fileSize;
             }
         }
 
@@ -69,9 +115,9 @@ exports.createPost = async (req, res) => {
         }
 
         const result = await db.query(`
-            INSERT INTO posts (author_id, content, image_url, video_url, link_url, pdf_url)
-            VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
-        `, [req.user.userId, content || '', image_url, video_url, link_url, pdf_url]);
+            INSERT INTO posts (author_id, content, image_url, video_url, link_url, pdf_url, file_size)
+            VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
+        `, [userId, content || '', image_url, video_url, link_url, pdf_url, totalFileSize]);
 
         // Audit: Post Created
         await req.audit('POST_CREATE', result.rows[0].id, {
@@ -79,13 +125,17 @@ exports.createPost = async (req, res) => {
             hasImage: !!image_url,
             hasVideo: !!video_url,
             hasPdf: !!pdf_url,
-            hasLink: !!link_url
+            hasLink: !!link_url,
+            fileSize: totalFileSize,
+            storage: 'backblaze_b2'
         });
 
         res.status(201).json({ message: 'Post created successfully', id: result.rows[0].id });
     } catch (error) {
         console.error('Error creating post:', error);
-        res.status(500).json({ error: 'Server error creating post' });
+        // Provide specific error messages from B2 service
+        const errorMsg = error.message || 'Server error creating post';
+        res.status(error.message?.includes('limit') ? 403 : 500).json({ error: errorMsg });
     }
 };
 
@@ -184,19 +234,33 @@ exports.deleteComment = async (req, res) => {
 /**
  * DELETE /api/posts/:id
  * Delete a post. Owner or admin can delete.
+ * Also deletes associated media from B2 cloud storage.
  */
 exports.deletePost = async (req, res) => {
     try {
         const { id } = req.params;
-        const check = await db.query('SELECT author_id FROM posts WHERE id = $1', [id]);
+        const check = await db.query('SELECT author_id, image_url, video_url, pdf_url FROM posts WHERE id = $1', [id]);
         if (check.rows.length === 0) return res.status(404).json({ error: 'Post not found' });
 
-        const ownerId = check.rows[0].author_id;
+        const post = check.rows[0];
+        const ownerId = post.author_id;
 
         if (['black_hat_admin', 'admin', 'editor_admin'].includes(req.user.role) || ownerId === req.user.userId) {
+            // Delete media files from B2 cloud storage
+            const mediaUrls = [post.image_url, post.video_url, post.pdf_url].filter(Boolean);
+            for (const url of mediaUrls) {
+                const fileName = b2Service.getFileNameFromUrl(url);
+                if (fileName) {
+                    // Fire and forget — don't block post deletion if B2 delete fails
+                    b2Service.deleteFile(fileName).catch(err => {
+                        console.warn(`⚠️ Failed to delete B2 file: ${fileName}`, err.message);
+                    });
+                }
+            }
+
             await db.query('DELETE FROM posts WHERE id = $1', [id]);
 
-            await req.audit('POST_DELETE', id, { postOwner: ownerId });
+            await req.audit('POST_DELETE', id, { postOwner: ownerId, deletedMedia: mediaUrls.length });
 
             res.json({ message: 'Post deleted' });
         } else {
@@ -204,5 +268,29 @@ exports.deletePost = async (req, res) => {
         }
     } catch (error) {
         res.status(500).json({ error: 'Server error deleting post' });
+    }
+};
+
+/**
+ * GET /api/posts/storage-info
+ * Get storage usage info for the current user.
+ */
+exports.getStorageInfo = async (req, res) => {
+    try {
+        const limitInfo = await b2Service.checkUploadLimit(db, req.user.userId, req.user.role);
+
+        // Get total size of user's uploads
+        const sizeResult = await db.query(
+            'SELECT COALESCE(SUM(file_size), 0) as total_size FROM posts WHERE author_id = $1',
+            [req.user.userId]
+        );
+
+        res.json({
+            ...limitInfo,
+            totalSize: parseInt(sizeResult.rows[0].total_size) || 0,
+            totalSizeMB: ((parseInt(sizeResult.rows[0].total_size) || 0) / (1024 * 1024)).toFixed(2),
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error getting storage info' });
     }
 };

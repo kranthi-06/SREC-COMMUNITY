@@ -28,6 +28,9 @@ const Community = () => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [page, setPage] = useState(1);
+    const [loadingMore, setLoadingMore] = useState(false);
 
     // Post Creation State
     const [newPost, setNewPost] = useState({ content: '', link_url: '' });
@@ -35,26 +38,44 @@ const Community = () => {
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [selectedPdf, setSelectedPdf] = useState(null);
     const [posting, setPosting] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     // Comment State
     const [activeComments, setActiveComments] = useState(null); // stores Post ID
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
 
-    const fetchPosts = async () => {
+    const fetchPosts = async (pageNum = 1, append = false) => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/posts`);
-            setPosts(res.data);
+            if (pageNum > 1) setLoadingMore(true);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/posts?page=${pageNum}&limit=20`);
+            const data = res.data;
+            // Handle both paginated and legacy response
+            const newPosts = data.posts || data;
+            if (append) {
+                setPosts(prev => [...prev, ...newPosts]);
+            } else {
+                setPosts(newPosts);
+            }
+            setHasMore(data.pagination?.hasMore ?? false);
+            setPage(pageNum);
         } catch (error) {
             console.error('Error fetching posts:', error);
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
     };
 
     useEffect(() => {
-        fetchPosts();
+        fetchPosts(1);
     }, []);
+
+    const loadMore = () => {
+        if (!loadingMore && hasMore) {
+            fetchPosts(page + 1, true);
+        }
+    };
 
     // Roles include: Student, Faculty, Teacher, Admin, Super Admin
     // For now, let's assume everyone but students can post as per user request (or specify)
@@ -65,14 +86,16 @@ const Community = () => {
         e.preventDefault();
         if (!newPost.content && !selectedImage && !selectedVideo && !selectedPdf && !newPost.link_url) return;
 
-        // Vercel / Serverless Payload Limit Check (~4.5MB)
-        const checkSize = (file) => file && file.size > 4.5 * 1024 * 1024;
+        // B2 Cloud Storage limit: 100MB per file
+        const MAX_SIZE = 100 * 1024 * 1024;
+        const checkSize = (file) => file && file.size > MAX_SIZE;
         if (checkSize(selectedImage) || checkSize(selectedVideo) || checkSize(selectedPdf)) {
-            alert("File is too large for the server. Please keep files under 4.5MB for Vercel deployment.");
+            alert('File is too large. Maximum file size is 100MB.');
             return;
         }
 
         setPosting(true);
+        setUploadProgress(0);
         const formData = new FormData();
         formData.append('content', newPost.content);
         if (newPost.link_url) formData.append('link_url', newPost.link_url);
@@ -82,20 +105,26 @@ const Community = () => {
 
         try {
             await axios.post(`${import.meta.env.VITE_API_URL}/posts`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: { 'Content-Type': 'multipart/form-data' },
+                onUploadProgress: (progressEvent) => {
+                    const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    setUploadProgress(percent);
+                }
             });
             setNewPost({ content: '', link_url: '' });
             setSelectedImage(null);
             setSelectedVideo(null);
             setSelectedPdf(null);
             setIsCreateModalOpen(false);
-            fetchPosts();
+            setUploadProgress(0);
+            fetchPosts(1);
         } catch (error) {
             const errorMsg = error.response?.data?.error || '';
             const detailMsg = error.response?.data?.message || '';
             alert('Error creating post: ' + errorMsg + (detailMsg ? ' (' + detailMsg + ')' : ''));
         } finally {
             setPosting(false);
+            setUploadProgress(0);
         }
     };
 
@@ -148,7 +177,7 @@ const Community = () => {
     };
 
     const handleDeletePost = async (postId) => {
-        if (!window.confirm('Delete this post permanently?')) return;
+        if (!window.confirm('Delete this post permanently? Media files will also be removed from cloud storage.')) return;
         try {
             await axios.delete(`${import.meta.env.VITE_API_URL}/posts/${postId}`);
             setPosts(posts.filter(p => p.id !== postId));
@@ -225,6 +254,20 @@ const Community = () => {
                             onAddComment={() => handleAddComment(post.id)}
                         />
                     ))
+                )}
+
+                {/* Load More Button */}
+                {hasMore && !loading && posts.length > 0 && (
+                    <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                        <button
+                            onClick={loadMore}
+                            disabled={loadingMore}
+                            className="btn btn-secondary"
+                            style={{ padding: '10px 30px', borderRadius: '30px', fontSize: '0.9rem' }}
+                        >
+                            {loadingMore ? 'Loading...' : 'Load More Posts'}
+                        </button>
+                    </div>
                 )}
             </div>
 
@@ -305,9 +348,28 @@ const Community = () => {
                                     className="btn btn-primary"
                                     style={{ padding: '10px 25px', borderRadius: '30px' }}
                                 >
-                                    {posting ? 'Posting...' : 'Publish'}
+                                    {posting ? (uploadProgress > 0 ? `Uploading ${uploadProgress}%` : 'Posting...') : 'Publish'}
                                 </button>
                             </div>
+
+                            {/* Upload Progress Bar */}
+                            {posting && uploadProgress > 0 && (
+                                <div style={{ marginTop: '12px' }}>
+                                    <div style={{
+                                        width: '100%', height: '4px', borderRadius: '100px',
+                                        background: 'rgba(255,255,255,0.08)', overflow: 'hidden'
+                                    }}>
+                                        <div style={{
+                                            width: `${uploadProgress}%`, height: '100%',
+                                            background: 'linear-gradient(90deg, var(--accent-green), var(--accent-olive))',
+                                            borderRadius: '100px', transition: 'width 0.3s ease'
+                                        }} />
+                                    </div>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px', textAlign: 'center' }}>
+                                        Uploading to cloud storage... {uploadProgress}%
+                                    </p>
+                                </div>
+                            )}
                         </motion.div>
                     </div>
                 )}

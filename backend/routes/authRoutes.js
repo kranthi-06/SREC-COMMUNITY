@@ -13,6 +13,11 @@ router.post('/:routeType/register', authController.register);
 router.post('/:routeType/verify-otp', authController.verifyOTP);
 router.post('/:routeType/login', authController.login);
 
+// Forgot password flow (public)
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/verify-forgot-otp', authController.verifyForgotOTP);
+router.post('/reset-password', authController.resetPassword);
+
 // Token management
 router.post('/refresh-token', authController.refreshToken);
 router.post('/logout', protect, authController.logout);

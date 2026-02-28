@@ -850,18 +850,55 @@ main {
   animation: ringShimmer 3s ease-in-out infinite;
 }
 
-/* ---- AI ADMIN (BlackHat) — Static neon purple ring + purple shimmer ---- */
-.ai-ring {
+/* ---- EDITOR ADMIN — Polished silver/platinum ring + cool shimmer ---- */
+.editor-ring {
   background: conic-gradient(from 135deg,
-      #7C3AED, #C084FC, #A855F7, #9333EA, #7C3AED);
+      #C0C0C0, #E8E8E8, #A8A8A8, #D4D4D8, #B0B0B8, #E8E8E8, #C0C0C0);
 }
 
-.ai-ring::after {
+.editor-ring::after {
   background: linear-gradient(105deg,
-      transparent 30%,
-      rgba(255, 255, 255, 0.3) 50%,
-      transparent 70%);
-  animation: ringShimmer 2.2s ease-in-out infinite;
+      transparent 25%,
+      rgba(255, 255, 255, 0.5) 45%,
+      rgba(255, 255, 255, 0.6) 50%,
+      rgba(255, 255, 255, 0.5) 55%,
+      transparent 75%);
+  animation: ringShimmer 3.5s ease-in-out infinite;
+}
+
+/* ---- BLACK HAT ADMIN — Ruby diamond-facet ring + sweep glow ---- */
+.blackhat-ring {
+  background: conic-gradient(from 0deg,
+      #9B1B30, #E0115F, #C41E3A, #FF2D55,
+      #9B1B30, #E0115F, #C41E3A, #FF2D55,
+      #9B1B30, #E0115F, #C41E3A, #FF2D55,
+      #9B1B30);
+  position: relative;
+}
+
+/* Diamond facet pattern overlay */
+.blackhat-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  z-index: 1;
+  background:
+    repeating-conic-gradient(from 0deg,
+      rgba(255, 255, 255, 0.12) 0deg 15deg,
+      transparent 15deg 30deg);
+  pointer-events: none;
+}
+
+/* Sweep glow — one end to the other */
+.blackhat-ring::after {
+  background: linear-gradient(105deg,
+      transparent 20%,
+      rgba(255, 200, 200, 0.25) 35%,
+      rgba(255, 255, 255, 0.55) 50%,
+      rgba(255, 200, 200, 0.25) 65%,
+      transparent 80%);
+  animation: ringShimmer 2.5s ease-in-out infinite;
 }
 
 /* ---- FACULTY — Static copper/bronze ring + warm shimmer ---- */
@@ -887,7 +924,7 @@ main {
   display: none;
 }
 
-/* Shimmer sweeps from left to right across the ring */
+/* Shimmer sweeps from one end to the other across the ring */
 @keyframes ringShimmer {
   0% {
     left: -150%;

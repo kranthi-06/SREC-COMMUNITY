@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Link as LinkIcon, Film, Image as ImageIcon, X, Send, Upload, Calendar, Clock } from 'lucide-react';
+import { Plus, Trash2, Link as LinkIcon, Film, Image as ImageIcon, X, Send, Upload, Calendar, Clock, Sparkles, Loader2 } from 'lucide-react';
 import { getImageUrl } from '../utils/imageUtils';
 
 
@@ -24,6 +24,8 @@ const ManageEvents = () => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [aiGenerating, setAiGenerating] = useState(false);
+    const [aiError, setAiError] = useState('');
 
     useEffect(() => {
         fetchEvents();
@@ -269,6 +271,124 @@ const ManageEvents = () => {
                                     <label style={{ fontWeight: '700' }}>Event Description</label>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '600' }}>* This appears below the image for students</span>
                                 </div>
+
+                                {/* AI Description Button */}
+                                <div style={{ marginBottom: '10px' }}>
+                                    <button
+                                        type="button"
+                                        disabled={aiGenerating || (!selectedFile && !formData.media_url)}
+                                        onClick={async () => {
+                                            setAiGenerating(true);
+                                            setAiError('');
+                                            try {
+                                                let fileToSend = selectedFile;
+
+                                                // If only a URL is provided (no file upload), fetch it as a blob
+                                                if (!fileToSend && formData.media_url) {
+                                                    const response = await fetch(formData.media_url);
+                                                    const blob = await response.blob();
+                                                    fileToSend = new File([blob], 'poster.jpg', { type: blob.type });
+                                                }
+
+                                                if (!fileToSend) {
+                                                    setAiError('Please upload an event poster image first.');
+                                                    return;
+                                                }
+
+                                                // Only allow images
+                                                if (!fileToSend.type.startsWith('image/')) {
+                                                    setAiError('AI description only works with image files, not videos.');
+                                                    return;
+                                                }
+
+                                                const data = new FormData();
+                                                data.append('image', fileToSend);
+
+                                                const res = await axios.post(
+                                                    `${import.meta.env.VITE_API_URL}/events/generate-description`,
+                                                    data,
+                                                    { headers: { 'Content-Type': 'multipart/form-data' } }
+                                                );
+
+                                                setFormData(prev => ({ ...prev, description: res.data.description }));
+                                            } catch (error) {
+                                                const msg = error.response?.data?.error || error.message || 'Failed to generate description.';
+                                                setAiError(msg);
+                                            } finally {
+                                                setAiGenerating(false);
+                                            }
+                                        }}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            padding: '10px 20px',
+                                            borderRadius: '10px',
+                                            border: 'none',
+                                            cursor: (aiGenerating || (!selectedFile && !formData.media_url)) ? 'not-allowed' : 'pointer',
+                                            fontSize: '0.85rem',
+                                            fontWeight: '700',
+                                            background: (aiGenerating || (!selectedFile && !formData.media_url))
+                                                ? 'rgba(139, 92, 246, 0.15)'
+                                                : 'linear-gradient(135deg, #8b5cf6, #6366f1, #8b5cf6)',
+                                            backgroundSize: '200% 200%',
+                                            color: (aiGenerating || (!selectedFile && !formData.media_url))
+                                                ? 'rgba(139, 92, 246, 0.5)'
+                                                : '#ffffff',
+                                            transition: 'all 0.3s ease',
+                                            boxShadow: (aiGenerating || (!selectedFile && !formData.media_url))
+                                                ? 'none'
+                                                : '0 4px 15px rgba(139, 92, 246, 0.3)',
+                                            position: 'relative',
+                                            zIndex: 40,
+                                            overflow: 'hidden'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!aiGenerating && (selectedFile || formData.media_url)) {
+                                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                                e.currentTarget.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.4)';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.transform = 'translateY(0)';
+                                            e.currentTarget.style.boxShadow = (aiGenerating || (!selectedFile && !formData.media_url))
+                                                ? 'none'
+                                                : '0 4px 15px rgba(139, 92, 246, 0.3)';
+                                        }}
+                                    >
+                                        {aiGenerating ? (
+                                            <>
+                                                <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                                                Analyzing Poster & Generating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles size={16} />
+                                                AI Description
+                                            </>
+                                        )}
+                                    </button>
+                                    {(!selectedFile && !formData.media_url) && (
+                                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '12px', fontStyle: 'italic' }}>
+                                            Upload a poster image first to enable AI description
+                                        </span>
+                                    )}
+                                    {aiError && (
+                                        <div style={{
+                                            marginTop: '8px',
+                                            padding: '8px 14px',
+                                            borderRadius: '8px',
+                                            background: 'rgba(239, 68, 68, 0.1)',
+                                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                                            color: '#ef4444',
+                                            fontSize: '0.8rem',
+                                            fontWeight: '600'
+                                        }}>
+                                            ⚠️ {aiError}
+                                        </div>
+                                    )}
+                                </div>
+
                                 <textarea
                                     rows="4"
                                     required

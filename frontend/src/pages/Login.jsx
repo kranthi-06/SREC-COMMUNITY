@@ -198,11 +198,14 @@ const Login = ({ routeType }) => {
                         </div>
                     </div>
 
-                    {/* Forgot Password hint */}
+                    {/* Forgot Password link */}
                     <div style={{ textAlign: 'right', marginBottom: '2rem' }}>
-                        <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: '600' }}>
+                        <Link
+                            to={`/auth/${routeType}/forgot-password`}
+                            style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: '600', textDecoration: 'none' }}
+                        >
                             Forgot password?
-                        </span>
+                        </Link>
                     </div>
 
                     {/* Submit */}

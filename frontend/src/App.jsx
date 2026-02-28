@@ -16,6 +16,7 @@ import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
 import SelectRole from './pages/SelectRole';
 
 import Profile from './pages/Profile';
@@ -308,6 +309,8 @@ function AppContent() {
                 <Route path="/auth/faculty/login" element={<Login routeType="faculty" />} />
                 <Route path="/auth/student/register" element={<Register routeType="student" />} />
                 <Route path="/auth/faculty/register" element={<Register routeType="faculty" />} />
+                <Route path="/auth/student/forgot-password" element={<ForgotPassword routeType="student" />} />
+                <Route path="/auth/faculty/forgot-password" element={<ForgotPassword routeType="faculty" />} />
 
                 {/* Protected Routes */}
                 <Route path="/community" element={

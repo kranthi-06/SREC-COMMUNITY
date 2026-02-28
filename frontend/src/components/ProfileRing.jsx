@@ -2,12 +2,13 @@
  * ProfileRing.jsx
  * -------------------------------------------------
  * Reusable Instagram-style profile ring component.
- * Wraps around an avatar with a rotating gradient border
+ * Wraps around an avatar with a gradient border
  * that visually represents user roles.
  *
  * Roles:
- *   admin / editor_admin       → Gold rotating gradient ring
- *   black_hat_admin            → Neon purple faster rotating ring
+ *   admin                      → Gold rotating gradient ring
+ *   editor_admin               → Silver/platinum shimmer ring
+ *   black_hat_admin            → Ruby diamond-pattern ring with sweep glow
  *   faculty / hod / teacher    → Copper/bronze slow rotating ring
  *   student (default)          → Plain gray static ring
  *
@@ -25,11 +26,12 @@ import React from 'react';
 const getRingClass = (role) => {
     switch (role) {
         case 'admin':
-        case 'editor_admin':
             return 'admin-ring';
+        case 'editor_admin':
+            return 'editor-ring';
         case 'black_hat_admin':
         case 'blackhat_admin':
-            return 'ai-ring';
+            return 'blackhat-ring';
         case 'faculty':
         case 'hod':
         case 'principal':
