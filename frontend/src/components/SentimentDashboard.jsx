@@ -378,32 +378,71 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
 
                 // Build question columns and analysis from TEXT_BASED questions
                 const textQuestions = questions.filter(q => q.type === 'TEXT_BASED');
-                const questionColumns = textQuestions.map(q => q.text);
+                const allQuestions = questions; // Use all questions for analysis
+                const questionColumns = allQuestions.map(q => q.text);
 
-                // Build question-wise sentiment analysis for text questions
+                // Simple option-to-sentiment classifier for OPTION_BASED answers
+                const classifyOption = (answer) => {
+                    if (!answer) return null;
+                    const lower = String(answer).toLowerCase().trim();
+                    const positiveWords = ['good', 'great', 'excellent', 'amazing', 'yes', 'agree', 'strongly agree', 'satisfied', 'very satisfied', 'love', 'awesome', '5', '4'];
+                    const negativeWords = ['bad', 'poor', 'terrible', 'no', 'disagree', 'strongly disagree', 'dissatisfied', 'very dissatisfied', 'needs improvement', 'worst', '1'];
+                    const neutralWords = ['average', 'okay', 'ok', 'neutral', 'maybe', 'not sure', '3', '2'];
+
+                    if (positiveWords.some(w => lower === w || lower.includes(w))) return 'Positive';
+                    if (negativeWords.some(w => lower === w || lower.includes(w))) return 'Negative';
+                    if (neutralWords.some(w => lower === w || lower.includes(w))) return 'Neutral';
+                    return 'Neutral';
+                };
+
+                // Build question-wise sentiment analysis for ALL questions
                 const questionAnalysis = {};
-                textQuestions.forEach(q => {
+                allQuestions.forEach(q => {
                     questionAnalysis[q.text] = { Positive: 0, Neutral: 0, Negative: 0, responses: [] };
                 });
+
+                // Track sentiment counts for summary
+                const computedSentiment = { Positive: 0, Neutral: 0, Negative: 0, analyzed: 0 };
 
                 // Build response table data
                 const responses = (raw.raw_responses || []).map((r, idx) => {
                     const answers = r.answers || {};
-                    // For text-based questions, simulate per-question analysis
-                    textQuestions.forEach(q => {
+                    let responseSentiment = r.sentiment_label; // Use server-side sentiment if available
+
+                    // For each question, classify the answer
+                    allQuestions.forEach(q => {
                         const answer = answers[q.id];
-                        if (answer && typeof answer === 'string' && answer.trim()) {
-                            // Use overall sentiment for this response as proxy
-                            const label = r.sentiment_label || 'Neutral';
-                            questionAnalysis[q.text][label] = (questionAnalysis[q.text][label] || 0) + 1;
-                            questionAnalysis[q.text].responses.push({
-                                name: r.department ? `${r.department} - ${r.year_string || ''}` : `Respondent ${idx + 1}`,
-                                text: answer,
-                                sentiment: label,
-                                score: r.sentiment_score || 0
-                            });
+                        if (answer && String(answer).trim()) {
+                            let label;
+                            if (q.type === 'TEXT_BASED') {
+                                label = r.sentiment_label || 'Neutral';
+                            } else {
+                                // OPTION_BASED, EMOJI_BASED, RATING_BASED — classify from the answer
+                                label = classifyOption(answer);
+                            }
+
+                            if (label) {
+                                questionAnalysis[q.text][label] = (questionAnalysis[q.text][label] || 0) + 1;
+                                questionAnalysis[q.text].responses.push({
+                                    name: r.student_name || `Respondent ${idx + 1}`,
+                                    text: String(answer),
+                                    sentiment: label,
+                                    score: r.sentiment_score || 0
+                                });
+                            }
+
+                            // If no server-side sentiment, use the first classified answer
+                            if (!responseSentiment && label) {
+                                responseSentiment = label;
+                            }
                         }
                     });
+
+                    // Count for summary
+                    if (responseSentiment) {
+                        computedSentiment[responseSentiment] = (computedSentiment[responseSentiment] || 0) + 1;
+                        computedSentiment.analyzed++;
+                    }
 
                     // Build raw_data object from answers for the table
                     const rawData = {};
@@ -414,14 +453,20 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                     return {
                         id: idx,
                         row_index: idx,
-                        respondent_name: r.department ? `${r.department} ${r.year_string || ''}`.trim() : `Respondent ${idx + 1}`,
+                        respondent_name: r.student_name || `Respondent ${idx + 1}`,
+                        respondent_department: r.department ? `${r.department} ${r.year_string || ''}`.trim() : null,
                         raw_data: rawData,
-                        sentiment_label: r.sentiment_label || null,
+                        sentiment_label: responseSentiment || null,
                         sentiment_score: r.sentiment_score || 0,
                         ai_confidence: r.ai_confidence || 0,
                         analyzed_at: r.analyzed_at
                     };
                 });
+
+                // Use server sentiment if available, otherwise use computed
+                const finalSentiment = (raw.sentimentSummary?.analyzed > 0)
+                    ? raw.sentimentSummary
+                    : computedSentiment;
 
                 // Build normalized data matching import format
                 const normalizedData = {
@@ -431,13 +476,13 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                         created_at: request.created_at,
                         status: 'complete',
                         total_rows: raw.total_sent || responses.length,
-                        analyzed_rows: raw.sentimentSummary?.analyzed || responses.length,
+                        analyzed_rows: finalSentiment.analyzed || responses.length,
                         columns: questions.map(q => q.text),
-                        ai_summary: raw.sentimentSummary?.analyzed > 0
-                            ? generateFormSummary(raw.sentimentSummary, raw.total_responses, raw.total_sent)
+                        ai_summary: finalSentiment.analyzed > 0
+                            ? generateFormSummary(finalSentiment, raw.total_responses, raw.total_sent)
                             : null
                     },
-                    sentimentSummary: raw.sentimentSummary || { Positive: 0, Neutral: 0, Negative: 0, analyzed: 0 },
+                    sentimentSummary: finalSentiment,
                     questionAnalysis,
                     questionColumns,
                     responses,
@@ -1016,7 +1061,20 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                                                         color: 'white',
                                                         whiteSpace: 'nowrap'
                                                     }}>
-                                                        {resp.respondent_name || `Respondent ${resp.row_index + 1}`}
+                                                        <div>
+                                                            {resp.respondent_name || `Respondent ${resp.row_index + 1}`}
+                                                            {resp.respondent_department && (
+                                                                <div style={{
+                                                                    fontSize: '0.7rem',
+                                                                    fontWeight: '500',
+                                                                    color: 'var(--text-muted)',
+                                                                    opacity: 0.7,
+                                                                    marginTop: '2px'
+                                                                }}>
+                                                                    {resp.respondent_department}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     {nonNameCols.map(col => (
                                                         <td key={col} style={{

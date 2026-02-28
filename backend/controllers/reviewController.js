@@ -194,10 +194,12 @@ exports.getReviewAnalytics = async (req, res) => {
         );
 
         const responses = await db.query(`
-            SELECT answers, department, year_string, created_at,
-                   sentiment_label, sentiment_score, ai_confidence, analyzed_at
-            FROM review_responses
-            WHERE request_id = $1
+            SELECT rr.answers, rr.department, rr.year_string, rr.created_at,
+                   rr.sentiment_label, rr.sentiment_score, rr.ai_confidence, rr.analyzed_at,
+                   u.full_name as student_name
+            FROM review_responses rr
+            JOIN users u ON rr.student_id = u.id
+            WHERE rr.request_id = $1
         `, [requestId]);
 
         // Aggregate analytics per question
@@ -245,7 +247,10 @@ exports.getReviewAnalytics = async (req, res) => {
             distributions,
             departmentBreakdown,
             sentimentSummary,
-            raw_responses: responses.rows
+            raw_responses: responses.rows.map(r => ({
+                ...r,
+                student_name: r.student_name || null
+            }))
         });
     } catch (error) {
         console.error('Error computing analytics:', error);
