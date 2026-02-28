@@ -79,7 +79,7 @@ const Community = () => {
 
     // Roles include: Student, Faculty, Teacher, Admin, Super Admin
     // For now, let's assume everyone but students can post as per user request (or specify)
-    const canCreatePost = ['black_hat_admin', 'admin', 'super_admin', 'faculty', 'teacher'].includes(user?.role);
+    const canCreatePost = ['black_hat_admin', 'admin', 'super_admin', 'editor_admin', 'faculty', 'teacher'].includes(user?.role);
     const isAdmin = ['black_hat_admin', 'admin', 'super_admin'].includes(user?.role);
 
     const handleCreatePost = async (e) => {
