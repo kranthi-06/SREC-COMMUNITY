@@ -805,26 +805,23 @@ main {
   justify-content: center;
   border-radius: 50%;
   flex-shrink: 0;
-  padding: 3px;
+  padding: 2.5px;
   overflow: hidden;
 }
 
-/* Inner circle — creates the visible gap between ring and avatar */
+/* Inner circle — sits inside the ring with no extra gap */
 .profile-ring__inner {
   position: relative;
   z-index: 2;
   border-radius: 50%;
-  background: var(--bg-main, #0a0a14);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 2px;
 }
 
-[data-theme='light'] .profile-ring__inner {
-  background: #f5f3ee;
-}
+/* No separate light/dark background on inner — it's transparent,
+   the avatar inside provides its own background */
 
 /* Shimmer overlay — sweeps left to right across the ring */
 .profile-ring::after {
