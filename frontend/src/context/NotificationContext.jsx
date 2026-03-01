@@ -268,31 +268,34 @@ export const NotificationProvider = ({ children }) => {
             notifications, unreadCount, markAsRead, markAllAsRead,
             deleteNotification, requestPermission, permission
         }}>
-            {children}
-
-            {/* Permission Banner — shows only when user is logged in and hasn't decided yet */}
+            {/* Permission Banner — MUST render BEFORE children so it appears at the top */}
             {user && permission === 'default' && (
                 <div style={{
-                    background: 'var(--accent-blue)', color: 'white', padding: '10px 20px',
+                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                    color: 'white', padding: '12px 20px',
                     textAlign: 'center', fontSize: '0.9rem', display: 'flex', justifyContent: 'center',
-                    alignItems: 'center', gap: '15px', position: 'sticky', top: 0, zIndex: 9999,
-                    flexWrap: 'wrap'
+                    alignItems: 'center', gap: '12px', position: 'fixed', top: 0, left: 0,
+                    right: 0, zIndex: 99999, boxShadow: '0 4px 20px rgba(37, 99, 235, 0.4)',
+                    flexWrap: 'wrap', minHeight: '50px'
                 }}>
-                    <span>🔔 Enable notifications to get instant alerts on your phone.</span>
+                    <span style={{ fontSize: '0.85rem' }}>🔔 Enable notifications to get instant alerts</span>
                     <button onClick={requestPermission} style={{
-                        background: 'white', color: 'var(--accent-blue)', border: 'none',
-                        padding: '5px 12px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer'
+                        background: 'white', color: '#2563eb', border: 'none',
+                        padding: '6px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer',
+                        fontSize: '0.8rem'
                     }}>
                         Enable
                     </button>
                     <button onClick={() => setPermission('dismissed')} style={{
-                        background: 'transparent', color: 'white', border: '1px solid white',
-                        padding: '4px 10px', borderRadius: '5px', cursor: 'pointer'
+                        background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.5)',
+                        padding: '5px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem'
                     }}>
-                        Dismiss
+                        ✕
                     </button>
                 </div>
             )}
+
+            {children}
 
             {/* Global Toast Container */}
             <div style={{
