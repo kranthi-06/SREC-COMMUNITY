@@ -37,7 +37,7 @@ export const NotificationProvider = ({ children }) => {
         fetchNotifications();
     }, [user, token]);
 
-    // WebSocket Initialization
+    // WebSocket Initialization (graceful on Vercel serverless)
     useEffect(() => {
         if (!user || !token) {
             if (socket) {
@@ -49,7 +49,10 @@ export const NotificationProvider = ({ children }) => {
 
         const backendUrl = import.meta.env.VITE_API_URL.replace('/api', '');
         const newSocket = io(backendUrl, {
-            transports: ['websocket', 'polling'] // Compatibility
+            transports: ['polling', 'websocket'],
+            reconnectionAttempts: 3,
+            reconnectionDelay: 2000,
+            timeout: 5000
         });
 
         newSocket.on('connect', () => {
@@ -63,8 +66,12 @@ export const NotificationProvider = ({ children }) => {
             showToast(data.title, data.message);
         });
 
+        newSocket.on('connect_error', () => {
+            // Silently handle — Web Push (VAPID) handles background delivery
+        });
+
         newSocket.on('disconnect', () => {
-            console.log("WebSocket disconnected");
+            console.log("WebSocket disconnected — push notifications still active via VAPID");
         });
 
         setSocket(newSocket);
