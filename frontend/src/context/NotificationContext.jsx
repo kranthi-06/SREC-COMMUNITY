@@ -92,32 +92,52 @@ export const NotificationProvider = ({ children }) => {
         }
     };
 
-    const showSystemNotification = (title, message) => {
+    const showSystemNotification = async (title, message) => {
         if (!('Notification' in window)) return;
 
         if (Notification.permission === 'granted') {
             try {
-                // Try service worker first (best for Android/mobile)
-                if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
-                    navigator.serviceWorker.ready.then(registration => {
-                        registration.showNotification(title, {
-                            body: message,
-                            icon: '/icons/icon-192.png',
-                            badge: '/icons/icon-192.png',
-                            vibrate: [200, 100, 200, 100, 200]
-                        });
-                    }).catch(error => {
-                        console.error('Service worker notification failed, falling back:', error);
-                        new Notification(title, { body: message, icon: '/icons/icon-192.png' });
+                const iconUrl = new URL('/icons/icon-192.png', window.location.origin).href;
+
+                // 1. Try passing it to the active Service Worker via postMessage
+                // This forces Android PWA to register it as a proper background notification
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({
+                        type: 'SHOW_NOTIFICATION',
+                        payload: { title, message, iconUrl }
                     });
-                } else {
-                    // Fallback to standard web notification API
-                    new Notification(title, { body: message, icon: '/icons/icon-192.png' });
+                    return; // Avoid duplicate showing
                 }
+
+                // 2. Try the Service Worker Registration directly
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.ready;
+                    if (registration) {
+                        try {
+                            await registration.showNotification(title, {
+                                body: message,
+                                icon: iconUrl,
+                                badge: iconUrl,
+                                vibrate: [200, 100, 200, 100, 200],
+                                requireInteraction: true,
+                                renotify: true,
+                                tag: 'pulse-' + Date.now()
+                            });
+                            return;
+                        } catch (e) {
+                            console.warn("Direct SW notification failed:", e);
+                        }
+                    }
+                }
+
+                // 3. Absolute fallback (Desktop Safari, Firefox, generic Desktop Chrome)
+                new Notification(title, {
+                    body: message,
+                    icon: iconUrl,
+                    requireInteraction: true
+                });
             } catch (e) {
                 console.error("Native notification failed", e);
-                // Absolute lowest level fallback if wrapped in a weird web view
-                new Notification(title, { body: message });
             }
         }
     };

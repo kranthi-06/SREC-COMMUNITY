@@ -41,3 +41,23 @@ self.addEventListener('notificationclick', function (event) {
         })
     );
 });
+
+// Allow foreground client to manually trigger SW notifications
+self.addEventListener('message', async (event) => {
+    if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+        const { title, message, iconUrl } = event.data.payload;
+        try {
+            await self.registration.showNotification(title, {
+                body: message,
+                icon: iconUrl || '/icons/icon-192.png',
+                badge: iconUrl || '/icons/icon-192.png',
+                vibrate: [200, 100, 200, 100, 200],
+                requireInteraction: true,
+                renotify: true,
+                tag: 'pulse-' + Date.now()
+            });
+        } catch (e) {
+            console.error('SW message notification failed:', e);
+        }
+    }
+});
