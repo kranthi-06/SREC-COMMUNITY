@@ -15,7 +15,8 @@ exports.getAllEvents = async (req, res) => {
     try {
         const result = await db.query(`
             SELECT e.id, e.title, e.description, e.department, e.event_date, e.event_end_date, 
-                   e.status, e.attachment_url, e.category, e.event_type, e.created_at,
+                   e.status, e.attachment_url, e.category, e.event_type,
+                   e.registration_url, e.registration_label, e.created_at,
                    u.full_name as creator_name
             FROM campus_events e
             LEFT JOIN users u ON e.creator_id = u.id
@@ -64,7 +65,7 @@ exports.getAllEvents = async (req, res) => {
  */
 exports.createEvent = async (req, res) => {
     try {
-        const { title, description, department, event_date, event_time, event_end_date, event_end_time, category, type, media_url } = req.body;
+        const { title, description, department, event_date, event_time, event_end_date, event_end_time, category, type, media_url, registration_url, registration_label } = req.body;
 
         const finalEventType = type || category || 'General';
 
@@ -126,9 +127,9 @@ exports.createEvent = async (req, res) => {
             : computedCategory;
 
         const result = await db.query(`
-            INSERT INTO campus_events (creator_id, title, description, department, event_date, event_end_date, status, attachment_url, category, event_type)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id
-        `, [req.user.userId, title, description, department || null, finalStartDate, finalEndDate, computedStatus, attachment_url, finalCategory, finalEventType]);
+            INSERT INTO campus_events (creator_id, title, description, department, event_date, event_end_date, status, attachment_url, category, event_type, registration_url, registration_label)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id
+        `, [req.user.userId, title, description, department || null, finalStartDate, finalEndDate, computedStatus, attachment_url, finalCategory, finalEventType, registration_url || null, registration_label || null]);
 
         // Audit: Event Created
         await req.audit('EVENT_CREATE', result.rows[0].id, {

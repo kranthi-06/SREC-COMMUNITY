@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, Clock, MapPin, Tag, Download, Play, MessagesSquare, X, ChevronDown } from 'lucide-react';
+import { Calendar, Clock, MapPin, Tag, Download, Play, MessagesSquare, X, ChevronDown, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getImageUrl } from '../utils/imageUtils';
 
@@ -209,7 +209,7 @@ const Events = () => {
                                         )}
                                     </div>
 
-                                    {/* View More Button */}
+                                    {/* View More + Register Buttons */}
                                     <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
                                         <button
                                             onClick={() => setModalEvent(evt)}
@@ -218,6 +218,22 @@ const Events = () => {
                                         >
                                             <ChevronDown size={18} /> View More
                                         </button>
+                                        {evt.registration_url && (
+                                            <a
+                                                href={evt.registration_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="btn"
+                                                style={{
+                                                    flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px',
+                                                    padding: '12px', textDecoration: 'none', borderRadius: '12px',
+                                                    background: 'linear-gradient(135deg, var(--accent-green, #22c55e), var(--accent-olive, #84cc16))',
+                                                    color: '#fff', fontWeight: '700', fontSize: '0.9rem', border: 'none'
+                                                }}
+                                            >
+                                                <ExternalLink size={16} /> {evt.registration_label || 'Register'}
+                                            </a>
+                                        )}
                                     </div>
                                 </div>
                             </motion.div>
@@ -427,6 +443,47 @@ const Events = () => {
                                         {modalEvent.description}
                                     </p>
                                 </div>
+
+                                {/* Registration Link */}
+                                {modalEvent.registration_url && (
+                                    <div style={{
+                                        borderTop: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                                        paddingTop: '1.5rem',
+                                        marginTop: '0.5rem'
+                                    }}>
+                                        <a
+                                            href={modalEvent.registration_url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '10px',
+                                                padding: '14px 24px',
+                                                borderRadius: '14px',
+                                                background: 'linear-gradient(135deg, var(--accent-green, #22c55e), var(--accent-olive, #84cc16))',
+                                                color: '#fff',
+                                                fontWeight: '800',
+                                                fontSize: '1rem',
+                                                textDecoration: 'none',
+                                                boxShadow: '0 8px 25px rgba(34, 197, 94, 0.3)',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                                e.currentTarget.style.boxShadow = '0 12px 30px rgba(34, 197, 94, 0.4)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.transform = 'translateY(0)';
+                                                e.currentTarget.style.boxShadow = '0 8px 25px rgba(34, 197, 94, 0.3)';
+                                            }}
+                                        >
+                                            <ExternalLink size={18} />
+                                            {modalEvent.registration_label || 'Register Now'}
+                                        </a>
+                                    </div>
+                                )}
 
 
                             </div>

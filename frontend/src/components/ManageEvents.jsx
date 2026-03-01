@@ -19,7 +19,9 @@ const ManageEvents = () => {
         event_date: '',
         event_time: '',
         event_end_date: '',
-        event_end_time: ''
+        event_end_time: '',
+        registration_url: '',
+        registration_label: ''
     });
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState('');
@@ -64,6 +66,8 @@ const ManageEvents = () => {
             data.append('event_time', formData.event_time);
             data.append('event_end_date', formData.event_end_date);
             data.append('event_end_time', formData.event_end_time);
+            if (formData.registration_url) data.append('registration_url', formData.registration_url);
+            if (formData.registration_label) data.append('registration_label', formData.registration_label);
 
             if (selectedFile) {
                 data.append('media', selectedFile);
@@ -82,7 +86,9 @@ const ManageEvents = () => {
                 media_url: '',
                 media_type: 'image',
                 event_date: '',
-                event_time: ''
+                event_time: '',
+                registration_url: '',
+                registration_label: ''
             });
             setSelectedFile(null);
             setPreviewUrl('');
@@ -397,6 +403,36 @@ const ManageEvents = () => {
                                     placeholder="Describe the event goals and what students will gain..."
                                     style={{ fontSize: '0.95rem', background: 'rgba(255,255,255,0.03)', padding: '15px', position: 'relative', zIndex: 40 }}
                                 ></textarea>
+                            </div>
+
+                            {/* Registration Link Fields */}
+                            <div style={{ gridColumn: 'span 2' }}>
+                                <label style={{ fontWeight: '700', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <LinkIcon size={16} style={{ color: 'var(--g-blue)' }} />
+                                    Registration Link
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '500' }}>(Optional — students can register using this)</span>
+                                </label>
+                                <div style={{
+                                    background: 'rgba(59, 130, 246, 0.04)',
+                                    border: '1px solid rgba(59, 130, 246, 0.12)',
+                                    borderRadius: '12px', padding: '12px',
+                                    display: 'flex', flexDirection: 'column', gap: '10px'
+                                }}>
+                                    <input
+                                        type="url"
+                                        placeholder="https://forms.google.com/..."
+                                        value={formData.registration_url}
+                                        onChange={(e) => setFormData({ ...formData, registration_url: e.target.value })}
+                                        style={{ fontSize: '0.85rem', background: 'rgba(255,255,255,0.03)', padding: '12px 14px', position: 'relative', zIndex: 40 }}
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Link label (e.g. Register for NEXORA)"
+                                        value={formData.registration_label}
+                                        onChange={(e) => setFormData({ ...formData, registration_label: e.target.value })}
+                                        style={{ fontSize: '0.85rem', background: 'rgba(255,255,255,0.03)', padding: '12px 14px', position: 'relative', zIndex: 40 }}
+                                    />
+                                </div>
                             </div>
 
                             <button type="submit" className="btn btn-primary" style={{ gridColumn: 'span 2', padding: '1.2rem', fontSize: '1.1rem', position: 'relative', zIndex: 40 }} disabled={submitting}>
