@@ -105,8 +105,8 @@ const ManageEvents = () => {
     };
 
     return (
-        <div className="glass-card admin-card" style={{ padding: '2.5rem', position: 'relative', zIndex: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
+        <div className="glass-card admin-card" style={{ padding: 'clamp(1rem, 4vw, 2.5rem)', position: 'relative', zIndex: 20 }}>
+            <div className="manage-events-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                     <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>Campus Events Management</h3>
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>Publish and manage upcoming activities for SREC students.</p>
@@ -138,7 +138,7 @@ const ManageEvents = () => {
                         exit={{ height: 0, opacity: 0 }}
                         style={{ overflow: 'hidden', marginBottom: '3rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '3rem' }}
                     >
-                        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem', position: 'relative', zIndex: 30 }}>
+                        <form onSubmit={handleSubmit} className="manage-events-form" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem', position: 'relative', zIndex: 30 }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div>
                                     <label style={{ fontWeight: '700', color: 'var(--primary)', marginBottom: '8px', display: 'block' }}>Event Title</label>
@@ -419,7 +419,7 @@ const ManageEvents = () => {
                     <p style={{ fontSize: '0.85rem', opacity: 0.6, marginTop: '8px' }}>Click "Add New Event" to get started.</p>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '2rem' }}>
                     {events.map(event => (
                         <motion.div
                             key={event.id}

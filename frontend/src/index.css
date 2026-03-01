@@ -1766,6 +1766,64 @@ main {
     word-wrap: break-word;
     overflow-wrap: break-word;
   }
+
+  /* ======================
+     MANAGE EVENTS — Mobile fixes
+     ====================== */
+  .manage-events-form {
+    grid-template-columns: 1fr !important;
+  }
+
+  .manage-events-form [style*="grid-column: span 2"],
+  .manage-events-form [style*="gridColumn"] {
+    grid-column: span 1 !important;
+  }
+
+  /* ======================
+     DASHBOARD — Mobile fixes
+     ====================== */
+  .dashboard-tabs {
+    width: 100% !important;
+  }
+
+  .dashboard-tabs button {
+    flex: 1 !important;
+    justify-content: center !important;
+    padding: 8px 12px !important;
+    font-size: 0.78rem !important;
+  }
+
+  /* ======================
+     AUDIT LOG TABLE — Mobile card layout
+     ====================== */
+  .audit-log-table table {
+    min-width: unset !important;
+  }
+
+  .audit-log-table thead {
+    display: none;
+  }
+
+  .audit-log-table tbody tr {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    margin-bottom: 0.8rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  }
+
+  .audit-log-table tbody td {
+    padding: 4px 0 !important;
+    white-space: normal !important;
+    max-width: 100% !important;
+  }
+
+  .audit-log-table tbody td:first-child {
+    font-size: 0.75rem;
+    opacity: 0.6;
+  }
 }
 
 /* ---- Small mobile: 480px ---- */

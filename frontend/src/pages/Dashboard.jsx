@@ -87,7 +87,7 @@ const AuditLogViewer = () => {
                 <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No audit logs recorded yet.</div>
             ) : (
                 <>
-                    <div style={{ overflowX: 'auto' }}>
+                    <div style={{ overflowX: 'auto' }} className="audit-log-table">
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid var(--glass-border)' }}>
@@ -189,7 +189,7 @@ const Dashboard = () => {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h1 className="gradient-text" style={{ fontSize: '3rem', lineHeight: '1', marginBottom: '0.8rem' }}>
+                    <h1 className="gradient-text" style={{ fontSize: 'clamp(1.8rem, 6vw, 3rem)', lineHeight: '1', marginBottom: '0.8rem' }}>
                         Command Centre
                     </h1>
                     <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', fontWeight: '500' }}>
@@ -216,7 +216,7 @@ const Dashboard = () => {
             )}
 
             {/* Tab Selector */}
-            <div style={{ display: 'flex', gap: '6px', marginBottom: '2rem', background: 'var(--glass-bg)', padding: '4px', borderRadius: '14px', width: 'fit-content', border: '1px solid var(--glass-border)', flexWrap: 'wrap' }}>
+            <div className="dashboard-tabs" style={{ display: 'flex', gap: '6px', marginBottom: '2rem', background: 'var(--glass-bg)', padding: '4px', borderRadius: '14px', border: '1px solid var(--glass-border)', flexWrap: 'wrap' }}>
                 {tabs.map(tab => (
                     <button
                         key={tab.key}
