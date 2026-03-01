@@ -21,7 +21,7 @@ exports.getAllPosts = async (req, res) => {
         const offset = (page - 1) * limit;
 
         const query = `
-            SELECT p.id, p.content, p.image_url, p.video_url, p.link_url, p.pdf_url, 
+            SELECT p.id, p.content, p.image_url, p.video_url, p.link_url, p.link_name, p.pdf_url, 
                    p.file_size, p.created_at,
                    u.full_name as author_name, u.role as author_role,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes,
@@ -61,7 +61,7 @@ exports.getAllPosts = async (req, res) => {
  */
 exports.createPost = async (req, res) => {
     try {
-        const { content, link_url } = req.body;
+        const { content, link_url, link_name } = req.body;
         const userId = req.user.userId;
         const role = req.user.role;
 
@@ -115,9 +115,9 @@ exports.createPost = async (req, res) => {
         }
 
         const result = await db.query(`
-            INSERT INTO posts (author_id, content, image_url, video_url, link_url, pdf_url, file_size)
-            VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
-        `, [userId, content || '', image_url, video_url, link_url, pdf_url, totalFileSize]);
+            INSERT INTO posts (author_id, content, image_url, video_url, link_url, link_name, pdf_url, file_size)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id
+        `, [userId, content || '', image_url, video_url, link_url, link_name || null, pdf_url, totalFileSize]);
 
         // Audit: Post Created
         await req.audit('POST_CREATE', result.rows[0].id, {

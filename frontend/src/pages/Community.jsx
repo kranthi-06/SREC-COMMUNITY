@@ -45,7 +45,8 @@ const Community = () => {
     const [loadingMore, setLoadingMore] = useState(false);
 
     // Post Creation State
-    const [newPost, setNewPost] = useState({ content: '', link_url: '' });
+    const [newPost, setNewPost] = useState({ content: '', link_url: '', link_name: '' });
+    const [isLinkInputOpen, setIsLinkInputOpen] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [selectedPdf, setSelectedPdf] = useState(null);
@@ -156,6 +157,7 @@ const Community = () => {
                     sessionId,
                     content: newPost.content,
                     link_url: newPost.link_url || null,
+                    link_name: newPost.link_name || null,
                 });
 
                 setUploadProgress(100);
@@ -164,6 +166,7 @@ const Community = () => {
                 const formData = new FormData();
                 formData.append('content', newPost.content);
                 if (newPost.link_url) formData.append('link_url', newPost.link_url);
+                if (newPost.link_name) formData.append('link_name', newPost.link_name);
                 if (selectedImage) formData.append('image', selectedImage);
                 if (selectedVideo) formData.append('video', selectedVideo);
                 if (selectedPdf) formData.append('pdf', selectedPdf);
@@ -177,7 +180,8 @@ const Community = () => {
                 });
             }
 
-            setNewPost({ content: '', link_url: '' });
+            setNewPost({ content: '', link_url: '', link_name: '' });
+            setIsLinkInputOpen(false);
             setSelectedImage(null);
             setSelectedVideo(null);
             setSelectedPdf(null);
@@ -394,11 +398,8 @@ const Community = () => {
                                     </label>
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            const link = prompt('Enter URL string:');
-                                            if (link) setNewPost({ ...newPost, link_url: link });
-                                        }}
-                                        style={{ background: 'none', border: 'none', color: 'var(--text-light)', opacity: 0.9, cursor: 'pointer' }}
+                                        onClick={() => setIsLinkInputOpen(!isLinkInputOpen)}
+                                        style={{ background: 'none', border: 'none', color: isLinkInputOpen ? 'var(--accent-green)' : 'var(--text-light)', opacity: 0.9, cursor: 'pointer' }}
                                         title="Add External Link"
                                     >
                                         <LinkIcon size={24} />
@@ -413,6 +414,58 @@ const Community = () => {
                                     {posting ? (uploadProgress > 0 ? `Uploading ${uploadProgress}%` : 'Posting...') : 'Publish'}
                                 </button>
                             </div>
+
+                            {/* Link Input Fields */}
+                            <AnimatePresence>
+                                {isLinkInputOpen && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                        style={{ overflow: 'hidden', marginBottom: '12px' }}
+                                    >
+                                        <div style={{
+                                            background: 'rgba(59, 130, 246, 0.05)',
+                                            border: '1px solid rgba(59, 130, 246, 0.15)',
+                                            borderRadius: '12px', padding: '12px',
+                                            display: 'flex', flexDirection: 'column', gap: '8px'
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <LinkIcon size={14} style={{ color: 'var(--g-blue)', flexShrink: 0 }} />
+                                                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--g-blue)' }}>Attach Link</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setIsLinkInputOpen(false); setNewPost({ ...newPost, link_url: '', link_name: '' }); }}
+                                                    style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.75rem' }}
+                                                >✕</button>
+                                            </div>
+                                            <input
+                                                type="url"
+                                                placeholder="https://example.com"
+                                                value={newPost.link_url}
+                                                onChange={(e) => setNewPost({ ...newPost, link_url: e.target.value })}
+                                                style={{
+                                                    width: '100%', background: 'rgba(255,255,255,0.05)',
+                                                    border: '1px solid var(--glass-border)', borderRadius: '8px',
+                                                    padding: '8px 12px', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none'
+                                                }}
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Link name (e.g. NEXORA Registration)"
+                                                value={newPost.link_name}
+                                                onChange={(e) => setNewPost({ ...newPost, link_name: e.target.value })}
+                                                style={{
+                                                    width: '100%', background: 'rgba(255,255,255,0.05)',
+                                                    border: '1px solid var(--glass-border)', borderRadius: '8px',
+                                                    padding: '8px 12px', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none'
+                                                }}
+                                            />
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
                             {/* Upload Progress Bar */}
                             {posting && uploadProgress > 0 && (
@@ -714,7 +767,7 @@ const PostCard = ({ post, user, isAdmin, onLike, onDelete, onLoadComments, isAct
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
                     {post.link_url && (
                         <a href={post.link_url} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: 'var(--g-blue)', textDecoration: 'none', background: 'rgba(59, 130, 246, 0.1)', padding: '5px 12px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <LinkIcon size={12} /> External Link
+                            <LinkIcon size={12} /> {post.link_name || 'External Link'}
                         </a>
                     )}
                     {post.pdf_url && (

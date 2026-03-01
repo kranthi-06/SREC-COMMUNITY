@@ -165,11 +165,11 @@ router.post('/upload/chunk', protect, postCreators, (req, res, next) => {
 /**
  * POST /api/posts/upload/complete
  * Complete the chunked upload — reassemble chunks and upload to B2.
- * Body: { sessionId, content, link_url }
+ * Body: { sessionId, content, link_url, link_name }
  */
 router.post('/upload/complete', protect, postCreators, async (req, res) => {
     try {
-        const { sessionId, content, link_url } = req.body;
+        const { sessionId, content, link_url, link_name } = req.body;
         const session = uploadSessions.get(sessionId);
 
         if (!session) {
@@ -207,9 +207,9 @@ router.post('/upload/complete', protect, postCreators, async (req, res) => {
 
         // Create the post
         const postResult = await db.query(`
-            INSERT INTO posts (author_id, content, image_url, video_url, link_url, pdf_url, file_size)
-            VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
-        `, [session.userId, content || '', image_url, video_url, link_url || null, pdf_url, result.fileSize]);
+            INSERT INTO posts (author_id, content, image_url, video_url, link_url, link_name, pdf_url, file_size)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id
+        `, [session.userId, content || '', image_url, video_url, link_url || null, link_name || null, pdf_url, result.fileSize]);
 
         // Audit
         await req.audit('POST_CREATE', postResult.rows[0].id, {
