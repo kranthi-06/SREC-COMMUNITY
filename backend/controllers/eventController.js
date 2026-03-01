@@ -139,6 +139,15 @@ exports.createEvent = async (req, res) => {
             endDate: finalEndDate.toISOString()
         });
 
+        const systemEmitter = require('../utils/eventEmitter');
+        systemEmitter.emit('EVENT_CREATED', {
+            title,
+            type: finalEventType,
+            department,
+            batch_year: null,
+            referenceId: result.rows[0].id
+        });
+
         res.status(201).json({ message: 'Campus event created successfully', id: result.rows[0].id });
     } catch (error) {
         console.error('Error creating event:', error);

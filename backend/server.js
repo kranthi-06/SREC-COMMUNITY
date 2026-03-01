@@ -120,6 +120,7 @@ app.use('/api/profile', require('./routes/profileRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/posts', require('./routes/postRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // ============================================
 // B2 MEDIA PROXY (for private bucket access)
@@ -128,8 +129,8 @@ const axios = require('axios');
 const b2Service = require('./services/b2Service');
 
 app.get('/api/media/*', async (req, res) => {
+    // Media handler logic intact...
     try {
-        // Extract the file path from the URL (everything after /api/media/)
         const filePath = req.params[0];
         if (!filePath) {
             return res.status(400).json({ error: 'No file path specified' });
@@ -138,14 +139,12 @@ app.get('/api/media/*', async (req, res) => {
         const { authToken: b2Auth, downloadUrl: b2DownloadUrl, bucketName } = await b2Service.getAuthDetails();
         const fileUrl = `${b2DownloadUrl}/file/${bucketName}/${filePath}`;
 
-        // Proxy the request to B2 with auth
         const b2Response = await axios.get(fileUrl, {
             headers: { 'Authorization': b2Auth },
             responseType: 'stream',
             timeout: 30000,
         });
 
-        // Forward content type and cache headers
         res.set('Content-Type', b2Response.headers['content-type'] || 'application/octet-stream');
         res.set('Content-Length', b2Response.headers['content-length']);
         res.set('Cache-Control', 'public, max-age=86400'); // 24h cache
@@ -193,7 +192,6 @@ app.get('/api/health', async (req, res) => {
 app.use((err, req, res, next) => {
     console.error('Unhandled Error:', err);
 
-    // Log critical errors to audit
     if (req.audit) {
         req.audit('UNHANDLED_ERROR', null, {
             error: err.message,
@@ -216,6 +214,20 @@ app.use((req, res) => {
 });
 
 // ============================================
+// INITIALIZE SOCKET & BACKGROUND SERVICES
+// ============================================
+const http = require('http');
+const socketService = require('./socket');
+
+// Require notificationService to execute/attach event listeners
+require('./services/notificationService');
+
+const server = http.createServer(app);
+
+// Initialize WebSockets
+socketService.init(server);
+
+// ============================================
 // START SERVER
 // ============================================
 const startServer = async () => {
@@ -223,9 +235,10 @@ const startServer = async () => {
         await db.query('SELECT NOW()');
         console.log('✅ Connected to Supabase PostgreSQL');
 
-        app.listen(PORT, () => {
+        server.listen(PORT, () => {
             console.log(`🚀 CampusPulse Server v2.0 running on port ${PORT}`);
             console.log(`🔒 Security: Helmet ✓ | Rate Limiting ✓ | HPP ✓ | Audit ✓`);
+            console.log(`📡 WebSocket: Socket.IO Enabled ✓`);
         });
     } catch (err) {
         console.error('❌ Failed to connect to PostgreSQL:', err);
@@ -237,4 +250,6 @@ if (!process.env.VERCEL) {
     startServer();
 }
 
-module.exports = app;
+// Export `server` instead of `app` for Vercel if needed, though usually standard API works
+// but sockets in Vercel function requires serverless setups. This standard server handles non-vercel well.
+module.exports = server;

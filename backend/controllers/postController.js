@@ -130,6 +130,12 @@ exports.createPost = async (req, res) => {
             storage: 'backblaze_b2'
         });
 
+        const systemEmitter = require('../utils/eventEmitter');
+        systemEmitter.emit('POST_CREATED', {
+            authorRole: role,
+            postId: result.rows[0].id
+        });
+
         res.status(201).json({ message: 'Post created successfully', id: result.rows[0].id });
     } catch (error) {
         console.error('Error creating post:', error);

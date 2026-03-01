@@ -26,6 +26,8 @@ import Events from './pages/Events';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProfileRing from './components/ProfileRing';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
+import NotificationBell from './components/NotificationBell';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Moon, Sun, LogOut, User as UserIcon, LayoutDashboard,
@@ -196,6 +198,7 @@ function AppContent() {
                       <InboxIcon size={20} />
                     </Link>
                   </li>
+                  <NotificationBell />
                   <div className="nav-divider desktop-only"></div>
                   <li className="desktop-only">
                     <button onClick={logout} className="icon-btn logout-btn" title="Logout" id="nav-logout">
@@ -410,9 +413,11 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <NotificationProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

@@ -223,6 +223,12 @@ router.post('/upload/complete', protect, postCreators, async (req, res) => {
             uploadMethod: 'chunked_upload'
         });
 
+        const systemEmitter = require('../utils/eventEmitter');
+        systemEmitter.emit('POST_CREATED', {
+            authorRole: session.role,
+            postId: postResult.rows[0].id
+        });
+
         // Clean up the session
         uploadSessions.delete(sessionId);
 

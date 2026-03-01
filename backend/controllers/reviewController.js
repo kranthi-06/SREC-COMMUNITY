@@ -49,6 +49,14 @@ exports.sendQuickReview = async (req, res) => {
             recipientCount: user_ids.length
         });
 
+        const systemEmitter = require('../utils/eventEmitter');
+        systemEmitter.emit('REVIEW_REQUEST_SENT', {
+            senderRole: req.user.role,
+            studentIds: user_ids,
+            referenceId: requestId,
+            eventName: title
+        });
+
         res.status(201).json({ message: `Successfully sent quick review request to ${user_ids.length} users` });
     } catch (error) {
         console.error('Error creating quick review:', error);
@@ -145,6 +153,14 @@ exports.createReviewRequest = async (req, res) => {
             title,
             questionCount: questions.length,
             recipientCount: recipientIds.length
+        });
+
+        const systemEmitter = require('../utils/eventEmitter');
+        systemEmitter.emit('REVIEW_REQUEST_SENT', {
+            senderRole: req.user.role,
+            studentIds: recipientIds,
+            referenceId: requestId,
+            eventName: title
         });
 
         res.status(201).json({ message: `Successfully dispatched review form to ${recipientIds.length} targeted users` });

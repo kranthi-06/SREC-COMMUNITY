@@ -1,0 +1,181 @@
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import io from 'socket.io-client';
+import axios from 'axios';
+import { useAuth } from './AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Bell, X, AlertCircle } from 'lucide-react';
+
+const NotificationContext = createContext();
+
+export const useNotifications = () => useContext(NotificationContext);
+
+export const NotificationProvider = ({ children }) => {
+    const { user, token } = useAuth();
+    const [socket, setSocket] = useState(null);
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [toasts, setToasts] = useState([]);
+
+    // Fetch initial notification history
+    useEffect(() => {
+        if (!user || !token) return;
+
+        const fetchNotifications = async () => {
+            try {
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/notifications`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setNotifications(res.data);
+                const unread = res.data.filter(n => !n.is_read).length;
+                setUnreadCount(unread);
+            } catch (err) {
+                console.error("Error fetching notification history", err);
+            }
+        };
+
+        fetchNotifications();
+    }, [user, token]);
+
+    // WebSocket Initialization
+    useEffect(() => {
+        if (!user || !token) {
+            if (socket) {
+                socket.disconnect();
+                setSocket(null);
+            }
+            return;
+        }
+
+        const backendUrl = import.meta.env.VITE_API_URL.replace('/api', '');
+        const newSocket = io(backendUrl, {
+            transports: ['websocket', 'polling'] // Compatibility
+        });
+
+        newSocket.on('connect', () => {
+            newSocket.emit('authenticate', user.id);
+            console.log("WebSocket connected for notifications");
+        });
+
+        newSocket.on('new_notification', (data) => {
+            setNotifications(prev => [data, ...prev]);
+            setUnreadCount(prev => prev + 1);
+            showToast(data.title, data.message);
+        });
+
+        newSocket.on('disconnect', () => {
+            console.log("WebSocket disconnected");
+        });
+
+        setSocket(newSocket);
+
+        return () => newSocket.disconnect();
+    }, [user, token]);
+
+    // Request Notification Permission
+    useEffect(() => {
+        if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+            Notification.requestPermission();
+        }
+    }, [user]);
+
+    const showSystemNotification = (title, message) => {
+        if (!('Notification' in window)) return;
+
+        if (Notification.permission === 'granted') {
+            try {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification(title, {
+                            body: message,
+                            icon: '/icons/icon-192.png',
+                            badge: '/icons/icon-192.png',
+                            vibrate: [200, 100, 200]
+                        });
+                    }).catch(() => {
+                        new Notification(title, { body: message, icon: '/icons/icon-192.png' });
+                    });
+                } else {
+                    new Notification(title, { body: message, icon: '/icons/icon-192.png' });
+                }
+            } catch (e) {
+                console.error("Native notification failed", e);
+            }
+        }
+    };
+
+    const showToast = (title, message) => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, title, message }]);
+        setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== id));
+        }, 5000); // 5 sec toast
+
+        // Also trigger native OS notification
+        showSystemNotification(title, message);
+    };
+
+    const markAsRead = async (notificationId) => {
+        try {
+            await axios.patch(`${import.meta.env.VITE_API_URL}/notifications/${notificationId}/read`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        } catch (err) {
+            console.error("Failed to mark notification as read", err);
+        }
+    };
+
+    const markAllAsRead = async () => {
+        try {
+            await axios.post(`${import.meta.env.VITE_API_URL}/notifications/mark-all-read`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            setUnreadCount(0);
+        } catch (err) {
+            console.error("Failed to mark all as read", err);
+        }
+    };
+
+    return (
+        <NotificationContext.Provider value={{ notifications, unreadCount, markAsRead, markAllAsRead }}>
+            {children}
+            {/* Global Toast Container */}
+            <div style={{
+                position: 'fixed', bottom: '20px', right: '20px',
+                display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 9999
+            }}>
+                <AnimatePresence>
+                    {toasts.map(t => (
+                        <motion.div
+                            key={t.id}
+                            initial={{ opacity: 0, x: 50 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            style={{
+                                background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(8px)',
+                                color: 'white', border: '1px solid var(--glass-border)',
+                                borderLeft: '4px solid var(--accent-green)', borderRadius: '10px',
+                                padding: '16px', minWidth: '300px', display: 'flex', gap: '12px',
+                                boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                            }}
+                        >
+                            <AlertCircle color="var(--accent-green)" />
+                            <div style={{ flex: 1 }}>
+                                <h4 style={{ margin: '0 0 5px', fontSize: '0.95rem' }}>{t.title}</h4>
+                                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t.message}</p>
+                            </div>
+                            <button
+                                onClick={() => setToasts(prev => prev.filter(toast => toast.id !== t.id))}
+                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+                            >
+                                <X size={16} />
+                            </button>
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
+            </div>
+        </NotificationContext.Provider>
+    );
+};

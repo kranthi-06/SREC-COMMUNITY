@@ -104,6 +104,15 @@ exports.sendMessage = async (req, res) => {
             messagePreview: (message_text || '').substring(0, 100)
         });
 
+        // Emit Notification Event
+        const systemEmitter = require('../utils/eventEmitter');
+        systemEmitter.emit('MESSAGE_SENT', {
+            senderRole: req.user.role,
+            recipientIds: receivers,
+            messageContent: message_text || 'Sent an attachment',
+            referenceId: null // or some thread ID if we had one
+        });
+
         res.status(201).json({ message: 'Message(s) sent successfully' });
     } catch (error) {
         console.error('Error sending message:', error);
@@ -164,6 +173,15 @@ exports.replyToAdmin = async (req, res) => {
         await req.audit('MESSAGE_REPLY', null, {
             recipientCount: recipients.rows.length,
             messagePreview: message_text.substring(0, 100)
+        });
+
+        // Emit Notification Event
+        const systemEmitter = require('../utils/eventEmitter');
+        systemEmitter.emit('MESSAGE_SENT', {
+            senderRole: req.user.role,
+            recipientIds: recipients.rows.map(r => r.id),
+            messageContent: message_text,
+            referenceId: null
         });
 
         res.status(201).json({ message: `Reply sent to ${recipients.rows.length} administrators.` });
