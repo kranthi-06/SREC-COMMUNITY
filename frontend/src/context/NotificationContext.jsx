@@ -302,7 +302,7 @@ export const NotificationProvider = ({ children }) => {
                     </button>
                 </div>
             )}
-            {user && !isSecure && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && (
+            {user && !window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && (
                 <div style={{
                     background: '#ef4444', color: 'white', padding: '10px',
                     textAlign: 'center', fontSize: '0.8rem', position: 'sticky', top: 0, zIndex: 9999
