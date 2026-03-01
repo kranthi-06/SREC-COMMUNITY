@@ -1539,6 +1539,108 @@ main {
   }
 
   /* ======================
+     SENTIMENT DASHBOARD — Mobile fixes
+     ====================== */
+
+  /* Charts: stack Pie + Bar vertically */
+  .chart-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+
+  /* Filter buttons: wrap on mobile */
+  .sentiment-filter-row {
+    flex-wrap: wrap !important;
+  }
+
+  .sentiment-filter-row button {
+    flex: 1 !important;
+    min-width: 60px !important;
+    padding: 8px 10px !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* ======================
+     ADMIN USERS TABLE — Mobile card layout
+     ====================== */
+
+  /* Hide table headers on mobile */
+  .glass-card table thead {
+    display: none;
+  }
+
+  /* Convert rows to card blocks */
+  .glass-card table tbody tr {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 1rem !important;
+    border-bottom: 1px solid var(--glass-border) !important;
+    gap: 0.5rem;
+  }
+
+  .glass-card table tbody td {
+    padding: 0.3rem 1rem !important;
+    text-align: left !important;
+  }
+
+  /* Action buttons wrap */
+  .glass-card table tbody td:last-child>div {
+    justify-content: flex-start !important;
+  }
+
+  /* ======================
+     ADMIN REVIEWS — Mobile fixes
+     ====================== */
+
+  /* Import header: stack title + buttons */
+  .import-header {
+    flex-direction: column !important;
+    gap: 1rem !important;
+    align-items: flex-start !important;
+  }
+
+  /* Import buttons: full width */
+  .import-buttons {
+    width: 100%;
+    flex-wrap: wrap !important;
+  }
+
+  .import-buttons button {
+    flex: 1 !important;
+    min-width: 0 !important;
+    justify-content: center !important;
+  }
+
+  /* Filter group rows: stack vertically */
+  .filter-group-row {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+
+  .filter-group-row select {
+    width: 100% !important;
+  }
+
+  .filter-group-row button {
+    align-self: flex-end !important;
+  }
+
+  /* Question builder: stack question + type */
+  .question-builder-row {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  /* Analytics layout: stack sidebar + content */
+  .analytics-layout {
+    flex-direction: column !important;
+  }
+
+  .analytics-sidebar {
+    width: 100% !important;
+  }
+
+  /* ======================
      FORM INPUTS — Touch friendly
      ====================== */
   input,

@@ -363,12 +363,12 @@ const AdminReviews = () => {
                                 padding: '1.5rem 2rem',
                                 marginBottom: '2.5rem'
                             }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: importMode !== 'none' ? '1.5rem' : '0' }}>
+                                <div className="import-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: importMode !== 'none' ? '1.5rem' : '0' }}>
                                     <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.05rem' }}>
                                         <Brain size={20} color="#8b5cf6" />
                                         Import Feedback Data for AI Analysis
                                     </h3>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                    <div className="import-buttons" style={{ display: 'flex', gap: '8px' }}>
                                         <button
                                             type="button"
                                             onClick={() => { setImportMode(importMode === 'csv' ? 'none' : 'csv'); setCsvPreview(null); setCsvFile(null); }}
@@ -551,7 +551,7 @@ const AdminReviews = () => {
                                 </div>
 
                                 {filterGroups.map((group) => (
-                                    <div key={group.id} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                    <div key={group.id} className="filter-group-row" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                         <select
                                             value={group.department}
                                             onChange={(e) => updateFilterGroup(group.id, 'department', e.target.value)}
@@ -615,7 +615,7 @@ const AdminReviews = () => {
                                             </button>
                                         )}
 
-                                        <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', alignItems: 'flex-start' }}>
+                                        <div className="question-builder-row" style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', alignItems: 'flex-start' }}>
                                             <div style={{ flex: 2 }}>
                                                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Question {qIndex + 1}</label>
                                                 <input
@@ -729,8 +729,8 @@ const AdminReviews = () => {
                                     onBack={() => { setSelectedRequest(null); setAnalyticsData(null); }}
                                 />
                             ) : (
-                                <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-                                    <div style={{ width: '320px', flexShrink: 0 }}>
+                                <div className="analytics-layout" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+                                    <div className="analytics-sidebar" style={{ width: '320px', flexShrink: 0 }}>
                                         {/* Dispatched Forms Section */}
                                         <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-muted)' }}><Filter size={16} /> Dispatched Forms</h3>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: datasets.length > 0 ? '350px' : '600px', overflowY: 'auto', paddingRight: '10px' }}>

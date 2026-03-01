@@ -161,12 +161,12 @@ const AdminUsers = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {/* Header Area */}
             <div className="glass-card" style={{ padding: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-                    <div>
-                        <h2 style={{ margin: 0, fontSize: '2rem', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div className="admin-users-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ minWidth: 0 }}>
+                        <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 4vw, 2rem)', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                             <Users size={32} color="var(--primary)" /> User Ecosystem
                         </h2>
-                        <p style={{ color: 'var(--text-muted)', marginTop: '5px' }}>Direct administrative access to campus identifiers and analytics.</p>
+                        <p style={{ color: 'var(--text-muted)', marginTop: '5px', fontSize: 'clamp(0.75rem, 2.5vw, 1rem)' }}>Direct administrative access to campus identifiers and analytics.</p>
                     </div>
                     <div style={{ display: 'flex', gap: '10px' }}>
                         <button
@@ -194,7 +194,7 @@ const AdminUsers = () => {
                     </div>
 
                     {filterGroups.map((group, idx) => (
-                        <div key={group.id} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <div key={group.id} className="filter-group-row" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                             <select
                                 className="form-input-wrapper"
                                 value={group.role}

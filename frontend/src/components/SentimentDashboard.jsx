@@ -882,7 +882,7 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
 
                     {/* Charts: Pie + Bar */}
                     {sentimentSummary.analyzed > 0 && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '1.5rem' }}>
+                        <div className="chart-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '1.5rem' }}>
                             <div>
                                 <h4 style={{ margin: '0 0 10px', fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '700' }}>
                                     <PieChartIcon size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
@@ -1030,7 +1030,7 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                                     }}
                                 />
                             </div>
-                            <div style={{ display: 'flex', gap: '6px' }}>
+                            <div className="sentiment-filter-row" style={{ display: 'flex', gap: '6px' }}>
                                 {['all', 'Positive', 'Neutral', 'Negative'].map(f => (
                                     <button
                                         key={f}
