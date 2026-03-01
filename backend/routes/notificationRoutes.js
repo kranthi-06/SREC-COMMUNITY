@@ -83,4 +83,30 @@ router.delete('/:id', protect, async (req, res) => {
     }
 });
 
+// Save Web Push Subscription
+router.post('/subscribe', protect, async (req, res) => {
+    try {
+        const subscription = req.body;
+
+        if (!subscription || !subscription.endpoint || !subscription.keys) {
+            return res.status(400).json({ error: 'Invalid subscription object' });
+        }
+
+        const { endpoint, keys } = subscription;
+        const { p256dh, auth } = keys;
+
+        await query(
+            `INSERT INTO push_subscriptions (user_id, endpoint, p256dh_key, auth_key) 
+             VALUES ($1, $2, $3, $4) 
+             ON CONFLICT (user_id, endpoint) DO NOTHING`,
+            [req.user.userId, endpoint, p256dh, auth]
+        );
+
+        res.status(201).json({ message: 'Subscription saved successfully' });
+    } catch (err) {
+        console.error('Error saving subscription:', err);
+        res.status(500).json({ error: 'Server error saving subscription' });
+    }
+});
+
 module.exports = router;

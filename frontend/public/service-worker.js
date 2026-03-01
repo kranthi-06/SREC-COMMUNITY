@@ -14,7 +14,10 @@ self.addEventListener('push', function (event) {
                 body: data.message,
                 icon: '/icons/icon-192.png',
                 badge: '/icons/icon-192.png',
-                vibrate: [200, 100, 200],
+                vibrate: [200, 100, 200, 100, 200],
+                data: {
+                    url: data.url || '/'
+                }
             };
             event.waitUntil(
                 self.registration.showNotification(data.title, options)
@@ -27,16 +30,19 @@ self.addEventListener('push', function (event) {
 
 self.addEventListener('notificationclick', function (event) {
     event.notification.close();
+    const targetUrl = event.notification.data?.url || '/';
+
     event.waitUntil(
         clients.matchAll({ type: 'window' }).then(windowClients => {
             for (var i = 0; i < windowClients.length; i++) {
                 var client = windowClients[i];
                 if (client.url && 'focus' in client) {
+                    client.navigate(targetUrl);
                     return client.focus();
                 }
             }
             if (clients.openWindow) {
-                return clients.openWindow('/');
+                return clients.openWindow(targetUrl);
             }
         })
     );

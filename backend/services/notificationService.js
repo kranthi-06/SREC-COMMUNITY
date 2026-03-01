@@ -41,6 +41,16 @@ async function getAllUsers() {
 /**
  * Process sending a notification to a list of users
  */
+const webPush = require('web-push');
+
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    webPush.setVapidDetails(
+        'mailto:support@srecnandyal.edu.in',
+        process.env.VAPID_PUBLIC_KEY,
+        process.env.VAPID_PRIVATE_KEY
+    );
+}
+
 async function sendNotification(userIds, title, message, type, referenceId) {
     if (!userIds || userIds.length === 0) return;
 
@@ -63,7 +73,7 @@ async function sendNotification(userIds, title, message, type, referenceId) {
                 const { rows } = await query(insertQuery, [userId, title, message, type, refIdStr]);
                 const newNotif = rows[0];
 
-                // Emit via socket if online
+                // Emit via socket if online (for live UI updates)
                 const io = socket.getIo();
                 if (io) {
                     const socketId = socket.getConnectedUserSocket(userId);
@@ -71,6 +81,38 @@ async function sendNotification(userIds, title, message, type, referenceId) {
                         io.to(socketId).emit('new_notification', newNotif);
                     }
                 }
+
+                // Web Push Delivery for true background/closed-app native notifications
+                if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+                    const pushSubs = await query('SELECT * FROM push_subscriptions WHERE user_id = $1', [userId]);
+                    const payload = JSON.stringify({
+                        title: title,
+                        message: message,
+                        type: type,
+                        url: '/'
+                    });
+
+                    for (const sub of pushSubs.rows) {
+                        try {
+                            const pushSubscription = {
+                                endpoint: sub.endpoint,
+                                keys: {
+                                    p256dh: sub.p256dh_key,
+                                    auth: sub.auth_key
+                                }
+                            };
+                            await webPush.sendNotification(pushSubscription, payload);
+                        } catch (err) {
+                            if (err.statusCode === 410 || err.statusCode === 404) {
+                                // Subscription expired or inactive, clean up db
+                                await query('DELETE FROM push_subscriptions WHERE id = $1', [sub.id]);
+                            } else {
+                                console.error('Web Push Error:', err);
+                            }
+                        }
+                    }
+                }
+
             } catch (err) {
                 console.error(`Failed to send notification to user ${userId}:`, err.message);
             }

@@ -75,6 +75,22 @@ export const NotificationProvider = ({ children }) => {
     const [permission, setPermission] = useState('Notification' in window ? Notification.permission : 'denied');
     const [isSecure, setIsSecure] = useState(window.isSecureContext);
 
+    // Helper to convert VAPID keys
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/\-/g, '+')
+            .replace(/_/g, '/');
+
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
     // Request Notification Permission (On click)
     const requestPermission = async () => {
         if (!('Notification' in window)) {
@@ -84,11 +100,36 @@ export const NotificationProvider = ({ children }) => {
         try {
             const perm = await Notification.requestPermission();
             setPermission(perm);
+
             if (perm === 'granted') {
                 showToast("Success", "Native notifications enabled!");
+
+                // Subscribe to Web Push
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.ready;
+                    const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+                    if (!vapidPublicKey) {
+                        console.error('Missing VAPID public key!');
+                        return;
+                    }
+
+                    const subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+                    });
+
+                    // Send to backend
+                    if (token) {
+                        await axios.post(`${import.meta.env.VITE_API_URL}/notifications/subscribe`, subscription, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        console.log('Web Push subscription saved to DB');
+                    }
+                }
             }
         } catch (e) {
-            console.error(e);
+            console.error("Permission request failed", e);
         }
     };
 
