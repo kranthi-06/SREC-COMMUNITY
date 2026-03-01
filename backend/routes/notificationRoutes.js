@@ -64,4 +64,23 @@ router.post('/mark-all-read', protect, async (req, res) => {
     }
 });
 
+// Delete a single notification
+router.delete('/:id', protect, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await query(
+            'DELETE FROM notifications WHERE id = $1 AND user_id = $2 RETURNING *',
+            [id, req.user.userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Notification not found or unauthorized' });
+        }
+        res.json({ message: 'Notification deleted successfully', id });
+    } catch (err) {
+        console.error('Error deleting notification:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 module.exports = router;

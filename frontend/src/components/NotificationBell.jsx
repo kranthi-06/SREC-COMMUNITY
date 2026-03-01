@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNotifications } from '../context/NotificationContext';
 import { Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const NotificationBell = () => {
-    const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+    const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
@@ -36,6 +37,8 @@ const NotificationBell = () => {
         }
     };
 
+    const isMobile = window.innerWidth <= 600;
+
     return (
         <li ref={dropdownRef} style={{ position: 'relative' }}>
             <button
@@ -59,9 +62,15 @@ const NotificationBell = () => {
             </button>
 
             {isOpen && (
-                <div style={{
+                <div style={isMobile ? {
+                    position: 'fixed', top: '70px', left: '10px', right: '10px',
+                    width: 'calc(100vw - 20px)', maxHeight: '400px', overflowY: 'auto', overflowX: 'hidden',
+                    background: 'var(--bg-card)', border: '1px solid var(--glass-border)',
+                    borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                    zIndex: 1000, display: 'flex', flexDirection: 'column'
+                } : {
                     position: 'absolute', top: 'calc(100% + 10px)', right: 0,
-                    width: '320px', maxHeight: '400px', overflowY: 'auto',
+                    width: '350px', maxHeight: '400px', overflowY: 'auto', overflowX: 'hidden',
                     background: 'var(--bg-card)', border: '1px solid var(--glass-border)',
                     borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
                     zIndex: 1000, display: 'flex', flexDirection: 'column'
@@ -87,36 +96,54 @@ const NotificationBell = () => {
                     </div>
 
                     <div style={{ padding: '8px' }}>
-                        {notifications.length === 0 ? (
-                            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', padding: '20px 0' }}>
-                                No notifications yet.
-                            </p>
-                        ) : (
-                            notifications.map(n => (
-                                <div
-                                    key={n.id}
-                                    onClick={() => handleNotificationClick(n)}
-                                    style={{
-                                        padding: '12px', borderRadius: '8px', cursor: 'pointer',
-                                        background: n.is_read ? 'transparent' : 'rgba(34, 197, 94, 0.05)',
-                                        borderLeft: n.is_read ? '3px solid transparent' : '3px solid var(--accent-green)',
-                                        marginBottom: '4px', transition: 'background 0.2s ease'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = n.is_read ? 'transparent' : 'rgba(34, 197, 94, 0.05)'}
+                        <AnimatePresence>
+                            {notifications.length === 0 ? (
+                                <motion.p
+                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                    style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', padding: '20px 0' }}
                                 >
-                                    <h5 style={{ margin: '0 0 4px', fontSize: '0.9rem', color: n.is_read ? 'var(--text-color)' : '#fff' }}>
-                                        {n.title}
-                                    </h5>
-                                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                        {n.message}
-                                    </p>
-                                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', marginTop: '6px', display: 'block' }}>
-                                        {new Date(n.created_at).toLocaleString()}
-                                    </span>
-                                </div>
-                            ))
-                        )}
+                                    No notifications yet.
+                                </motion.p>
+                            ) : (
+                                notifications.map(n => (
+                                    <motion.div
+                                        key={n.id}
+                                        layout
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0, x: 200 }}
+                                        drag="x"
+                                        dragConstraints={{ left: 0, right: 0 }}
+                                        dragElastic={0.8}
+                                        onDragEnd={(e, info) => {
+                                            if (info.offset.x > 80 || info.offset.x < -80) {
+                                                if (deleteNotification) deleteNotification(n.id);
+                                            }
+                                        }}
+                                        onClick={() => handleNotificationClick(n)}
+                                        style={{
+                                            padding: '12px', borderRadius: '8px', cursor: 'pointer',
+                                            background: n.is_read ? 'transparent' : 'rgba(34, 197, 94, 0.05)',
+                                            borderLeft: n.is_read ? '3px solid transparent' : '3px solid var(--accent-green)',
+                                            marginBottom: '4px', transition: 'background 0.2s ease',
+                                            position: 'relative', touchAction: 'pan-y'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = n.is_read ? 'transparent' : 'rgba(34, 197, 94, 0.05)'}
+                                    >
+                                        <h5 style={{ margin: '0 0 4px', fontSize: '0.9rem', color: n.is_read ? 'var(--text-color)' : '#fff' }}>
+                                            {n.title}
+                                        </h5>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                            {n.message}
+                                        </p>
+                                        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', marginTop: '6px', display: 'block' }}>
+                                            {new Date(n.created_at).toLocaleString()}
+                                        </span>
+                                    </motion.div>
+                                ))
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
             )}

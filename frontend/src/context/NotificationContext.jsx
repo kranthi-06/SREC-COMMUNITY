@@ -157,8 +157,27 @@ export const NotificationProvider = ({ children }) => {
         }
     };
 
+    const deleteNotification = async (notificationId) => {
+        try {
+            // Optimistically update UI
+            setNotifications(prev => prev.filter(n => n.id !== notificationId));
+
+            await axios.delete(`${import.meta.env.VITE_API_URL}/notifications/${notificationId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            // Recalculate unread count
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/notifications/unread-count`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setUnreadCount(parseInt(res.data.count, 10));
+        } catch (err) {
+            console.error("Failed to delete notification", err);
+        }
+    };
+
     return (
-        <NotificationContext.Provider value={{ notifications, unreadCount, markAsRead, markAllAsRead, requestPermission, permission }}>
+        <NotificationContext.Provider value={{ notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, requestPermission, permission }}>
             {children}
 
             {/* Permission Banner */}
