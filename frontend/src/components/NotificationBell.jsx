@@ -37,7 +37,7 @@ const NotificationBell = () => {
     };
 
     return (
-        <li className="desktop-only" ref={dropdownRef} style={{ position: 'relative' }}>
+        <li ref={dropdownRef} style={{ position: 'relative' }}>
             <button
                 className="icon-btn"
                 onClick={() => setIsOpen(!isOpen)}
