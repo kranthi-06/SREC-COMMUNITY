@@ -36,15 +36,8 @@ export const NotificationProvider = ({ children }) => {
         'Notification' in window ? Notification.permission : 'denied'
     );
 
-    // ─── Watch for native permission changes ───────────────
-    useEffect(() => {
-        if ('permissions' in navigator) {
-            navigator.permissions.query({ name: 'notifications' }).then((status) => {
-                setPermission(status.state);
-                status.onchange = () => setPermission(status.state);
-            }).catch(() => { });
-        }
-    }, []);
+    // Permission is reliable from Notification.permission directly
+    // No need for navigator.permissions.query which auto-reports 'granted' on PWA installs
 
     // ─── Fetch initial notifications ───────────────────────
     useEffect(() => {
