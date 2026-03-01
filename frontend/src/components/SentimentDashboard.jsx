@@ -8,7 +8,7 @@
  * 2. Question-wise Analysis — per-column sentiment breakdown with bar charts + AI insights
  * 3. Individual Response Table — searchable, filterable table with sentiment labels
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -18,10 +18,33 @@ import {
     ArrowLeft, Brain, Loader2, ThumbsUp, ThumbsDown, Meh
 } from 'lucide-react';
 import {
-    PieChart as RePieChart, Pie, Cell, ResponsiveContainer,
+    PieChart as RePieChart, Pie, Cell,
     Tooltip as RechartsTooltip, Legend,
     BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
+
+// Custom chart container that reliably measures width (fixes Recharts ResponsiveContainer mobile bug)
+const ChartContainer = ({ height = 250, children }) => {
+    const ref = useRef(null);
+    const [width, setWidth] = useState(0);
+
+    useEffect(() => {
+        if (!ref.current) return;
+        const measure = () => {
+            if (ref.current) setWidth(ref.current.clientWidth);
+        };
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(ref.current);
+        return () => ro.disconnect();
+    }, []);
+
+    return (
+        <div ref={ref} style={{ width: '100%', height: `${height}px`, overflow: 'hidden' }}>
+            {width > 0 && typeof children === 'function' ? children(width, height) : null}
+        </div>
+    );
+};
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -217,14 +240,16 @@ const QuestionAnalysisCard = ({ question, data, index }) => {
             {total > 0 && (
                 <div className="question-chart-grid" style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '2rem', alignItems: 'center', marginBottom: '1rem' }}>
                     <div style={{ height: '160px', width: '100%', overflow: 'hidden' }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RePieChart>
-                                <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="value">
-                                    {pieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                                </Pie>
-                                <RechartsTooltip content={<CustomTooltip />} />
-                            </RePieChart>
-                        </ResponsiveContainer>
+                        <ChartContainer height={160}>
+                            {(w, h) => (
+                                <RePieChart width={w} height={h}>
+                                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="value">
+                                        {pieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                                    </Pie>
+                                    <RechartsTooltip content={<CustomTooltip />} />
+                                </RePieChart>
+                            )}
+                        </ChartContainer>
                     </div>
                     <div>
                         {barData.map(d => {
@@ -890,17 +915,19 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                                     Pie Chart
                                 </h4>
                                 <div style={{ height: '250px', width: '100%', overflow: 'hidden' }}>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <RePieChart>
-                                            <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
-                                                {pieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                                            </Pie>
-                                            <RechartsTooltip content={<CustomTooltip />} />
-                                            <Legend
-                                                formatter={(value) => <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: '600', fontSize: '0.8rem' }}>{value}</span>}
-                                            />
-                                        </RePieChart>
-                                    </ResponsiveContainer>
+                                    <ChartContainer height={250}>
+                                        {(w, h) => (
+                                            <RePieChart width={w} height={h}>
+                                                <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
+                                                    {pieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                                                </Pie>
+                                                <RechartsTooltip content={<CustomTooltip />} />
+                                                <Legend
+                                                    formatter={(value) => <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: '600', fontSize: '0.8rem' }}>{value}</span>}
+                                                />
+                                            </RePieChart>
+                                        )}
+                                    </ChartContainer>
                                 </div>
                             </div>
                             <div style={{ width: '100%', minWidth: 0 }}>
@@ -909,17 +936,19 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                                     Bar Chart
                                 </h4>
                                 <div style={{ height: '250px', width: '100%', overflow: 'hidden' }}>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={barChartData}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                            <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600 }} axisLine={false} tickLine={false} />
-                                            <YAxis tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }} axisLine={false} tickLine={false} />
-                                            <RechartsTooltip content={<CustomTooltip />} />
-                                            <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                                                {barChartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                                            </Bar>
-                                        </BarChart>
-                                    </ResponsiveContainer>
+                                    <ChartContainer height={250}>
+                                        {(w, h) => (
+                                            <BarChart width={w} height={h} data={barChartData}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                                                <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                <YAxis tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                                                <RechartsTooltip content={<CustomTooltip />} />
+                                                <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                                                    {barChartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                                                </Bar>
+                                            </BarChart>
+                                        )}
+                                    </ChartContainer>
                                 </div>
                             </div>
                         </div>
