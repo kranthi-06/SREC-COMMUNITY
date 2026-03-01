@@ -16,8 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-// Import icons — Eye is used for the "Check Review" button
-import { MessageSquare, BarChart3, ShieldCheck, Sparkles, ArrowRight, Activity, Zap, Eye, ChevronDown, FileText, Clock, CheckCircle } from 'lucide-react';
+import { MessageSquare, BarChart3, ShieldCheck, Sparkles, ArrowRight, Activity, Zap, Eye, ChevronDown, FileText, Clock, CheckCircle, Calendar, X } from 'lucide-react';
 import { getImageUrl } from '../utils/imageUtils';
 
 /* ============================================
@@ -539,11 +538,14 @@ const StatBadge = ({ value, label, delay }) => (
 /* ============================================
    EVENTS GRID COMPONENT
    Fetches and renders all campus event cards.
-   Each card has a "Check Review" button instead of "Write Review"
+   Matches the Events page design with "View More" modal.
    ============================================ */
+const DESC_CHAR_LIMIT = 120;
+
 const EventsGrid = () => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [modalEvent, setModalEvent] = useState(null);
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -559,73 +561,224 @@ const EventsGrid = () => {
         fetchEvents();
     }, []);
 
-    const navigate = useNavigate();
-
     if (loading) return <div className="loader" style={{ margin: '2rem auto' }}></div>;
     if (events.length === 0) return null;
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>
-            {events.map((event, i) => (
-                <motion.div
-                    key={event.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="glass-card event-card"
-                    style={{ padding: '0', overflow: 'hidden' }}
-                >
-                    {/* Event image/video with zoom-on-hover effect */}
-                    {event.attachment_url && (
-                        <div style={{ overflow: 'hidden' }}>
-                            <img
-                                src={getImageUrl(event.attachment_url)}
-                                className="event-image"
-                                style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }}
-                                alt={event.title}
-                                onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = 'https://via.placeholder.com/600x400?text=Image+Unavailable';
-                                    e.target.style.opacity = '0.5';
-                                }}
-                            />
+        <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '2rem' }}>
+                {events.map((event, i) => (
+                    <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="glass-card"
+                        style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+                    >
+                        {event.attachment_url ? (
+                            <div style={{ position: 'relative', height: '220px', background: 'rgba(0,0,0,0.5)' }}>
+                                <img
+                                    src={getImageUrl(event.attachment_url)}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    alt={event.title}
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = 'https://via.placeholder.com/600x400?text=Image+Unavailable';
+                                        e.target.style.opacity = '0.5';
+                                    }}
+                                />
+                            </div>
+                        ) : (
+                            <div style={{ height: '220px', background: 'linear-gradient(135deg, var(--glass-bg), rgba(139, 92, 246, 0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Calendar size={64} color="var(--primary)" opacity={0.2} />
+                            </div>
+                        )}
+
+                        <div style={{ padding: '2rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                                <span style={{
+                                    padding: '4px 12px', borderRadius: '6px', fontSize: '0.75rem',
+                                    fontWeight: '800', textTransform: 'uppercase',
+                                    background: 'rgba(139, 92, 246, 0.2)', color: 'var(--accent-purple-light, #a78bfa)'
+                                }}>
+                                    {event.department || 'General'}
+                                </span>
+                                <span style={{
+                                    padding: '4px 12px', borderRadius: '6px', fontSize: '0.75rem',
+                                    fontWeight: '800', textTransform: 'uppercase',
+                                    background: event.status === 'upcoming' ? 'rgba(59, 130, 246, 0.2)' : event.status === 'ongoing' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                                    color: event.status === 'upcoming' ? '#60a5fa' : event.status === 'ongoing' ? '#10b981' : '#f59e0b'
+                                }}>
+                                    {event.status}
+                                </span>
+                            </div>
+
+                            <h3 style={{ fontSize: '1.4rem', fontWeight: '800', marginBottom: '0.5rem', color: 'var(--text-main)', lineHeight: '1.3' }}>
+                                {event.title}
+                            </h3>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Calendar size={16} />
+                                    {new Date(event.event_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                    {event.event_end_date && new Date(event.event_end_date).toDateString() !== new Date(event.event_date).toDateString() &&
+                                        ` - ${new Date(event.event_end_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                                    }
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Clock size={16} />
+                                    {new Date(event.event_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    {event.event_end_date && ` - ${new Date(event.event_end_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                                </div>
+                            </div>
+
+                            {/* Description with truncation */}
+                            <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--glass-border)', paddingTop: '1.5rem', flex: 1 }}>
+                                <p style={{
+                                    fontSize: '0.95rem', lineHeight: '1.6', color: 'var(--text-main)',
+                                    display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden', margin: 0
+                                }}>
+                                    {event.description}
+                                </p>
+                            </div>
+
+                            {/* View More Button */}
+                            <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+                                <button
+                                    onClick={() => setModalEvent(event)}
+                                    className="btn btn-primary"
+                                    style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '12px', cursor: 'pointer', border: 'none' }}
+                                >
+                                    <ChevronDown size={18} /> View More
+                                </button>
+                            </div>
                         </div>
-                    )}
-                    <div style={{ padding: '1.5rem' }}>
-                        {/* Event type badge */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem' }}>
-                            <span style={{
-                                fontSize: '0.68rem',
-                                fontWeight: '800',
-                                background: 'var(--accent-green)',
-                                color: 'white',
-                                padding: '4px 12px',
-                                borderRadius: '6px',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.06em'
-                            }}>
-                                {event.type}
-                            </span>
-                        </div>
-                        <h3 style={{ fontSize: '1.3rem', marginBottom: '1rem', fontWeight: '800' }}>
-                            {event.title}
-                        </h3>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '1.5rem' }}>
-                            {event.description}
-                        </p>
-                        {/* "Check Review" button — opens EventReviews page
-                             showing overall review summary + individual student reviews */}
-                        <button
-                            onClick={() => navigate(`/event/${encodeURIComponent(event.title)}`)}
-                            className="btn btn-secondary"
-                            style={{ width: '100%', padding: '10px', fontSize: '0.9rem' }}
+                    </motion.div>
+                ))}
+            </div>
+
+            {/* ─── Description Modal ─── */}
+            <AnimatePresence>
+                {modalEvent && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        onClick={() => setModalEvent(null)}
+                        style={{
+                            position: 'fixed', inset: 0, zIndex: 9999,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(8px)',
+                            WebkitBackdropFilter: 'blur(8px)', padding: '2rem'
+                        }}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                width: '100%', maxWidth: '640px', maxHeight: '85vh',
+                                overflowY: 'auto', borderRadius: '24px',
+                                background: 'var(--glass-bg, rgba(15, 23, 42, 0.95))',
+                                border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5), 0 0 80px rgba(139, 92, 246, 0.08)',
+                                position: 'relative'
+                            }}
                         >
-                            <Eye size={16} /> Check Review
-                        </button>
-                    </div>
-                </motion.div>
-            ))}
-        </div>
+                            {/* Modal Header Image */}
+                            {modalEvent.attachment_url && (
+                                <div style={{ position: 'relative', height: '220px' }}>
+                                    <img
+                                        src={getImageUrl(modalEvent.attachment_url)}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '24px 24px 0 0' }}
+                                        alt={modalEvent.title}
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = 'https://via.placeholder.com/600x300?text=Image+Unavailable';
+                                            e.target.style.opacity = '0.5';
+                                        }}
+                                    />
+                                    <div style={{
+                                        position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px',
+                                        background: 'linear-gradient(to top, var(--glass-bg, rgba(15, 23, 42, 0.95)), transparent)'
+                                    }} />
+                                </div>
+                            )}
+
+                            {/* Close Button */}
+                            <button
+                                onClick={() => setModalEvent(null)}
+                                style={{
+                                    position: 'absolute', top: '16px', right: '16px',
+                                    background: 'rgba(0, 0, 0, 0.5)', border: '1px solid rgba(255,255,255,0.1)',
+                                    color: '#fff', cursor: 'pointer', width: '40px', height: '40px',
+                                    borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    backdropFilter: 'blur(10px)', transition: 'all 0.2s', zIndex: 10
+                                }}
+                            >
+                                <X size={20} />
+                            </button>
+
+                            {/* Modal Content */}
+                            <div style={{ padding: '2rem 2.5rem 2.5rem' }}>
+                                <div style={{ display: 'flex', gap: '10px', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                                    <span style={{
+                                        padding: '5px 14px', borderRadius: '8px', fontSize: '0.75rem',
+                                        fontWeight: '800', textTransform: 'uppercase',
+                                        background: 'rgba(139, 92, 246, 0.2)', color: 'var(--accent-purple-light, #a78bfa)'
+                                    }}>
+                                        {modalEvent.department || 'General'}
+                                    </span>
+                                    <span style={{
+                                        padding: '5px 14px', borderRadius: '8px', fontSize: '0.75rem',
+                                        fontWeight: '800', textTransform: 'uppercase',
+                                        background: modalEvent.status === 'upcoming' ? 'rgba(59, 130, 246, 0.2)' : modalEvent.status === 'ongoing' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                                        color: modalEvent.status === 'upcoming' ? '#60a5fa' : modalEvent.status === 'ongoing' ? '#10b981' : '#f59e0b'
+                                    }}>
+                                        {modalEvent.status}
+                                    </span>
+                                </div>
+
+                                <h2 style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--text-main)', lineHeight: '1.3', marginBottom: '1.2rem' }}>
+                                    {modalEvent.title}
+                                </h2>
+
+                                <div style={{
+                                    display: 'flex', gap: '20px', flexWrap: 'wrap',
+                                    padding: '14px 18px', borderRadius: '14px',
+                                    background: 'rgba(139, 92, 246, 0.06)', border: '1px solid rgba(139, 92, 246, 0.12)',
+                                    marginBottom: '1.5rem', fontSize: '0.95rem', color: 'var(--text-muted)'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Calendar size={16} color="var(--primary)" />
+                                        {new Date(modalEvent.event_date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Clock size={16} color="var(--primary)" />
+                                        {new Date(modalEvent.event_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {modalEvent.event_end_date && ` — ${new Date(modalEvent.event_end_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                                    </div>
+                                </div>
+
+                                <div style={{ borderTop: '1px solid var(--glass-border, rgba(255,255,255,0.08))', paddingTop: '1.5rem' }}>
+                                    <h4 style={{ fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--primary)', marginBottom: '1rem' }}>
+                                        Event Description
+                                    </h4>
+                                    <p style={{ fontSize: '1rem', lineHeight: '1.8', color: 'var(--text-main)', whiteSpace: 'pre-wrap', margin: 0 }}>
+                                        {modalEvent.description}
+                                    </p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
     );
 };
 

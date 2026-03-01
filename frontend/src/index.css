@@ -1468,6 +1468,76 @@ main {
     width: 100% !important;
   }
 
+  /* Inbox — Main flex container: stack sidebar + content vertically */
+  .inbox-layout {
+    flex-direction: column !important;
+  }
+
+  /* Inbox sidebar — make it horizontal tabs instead of 250px column */
+  .inbox-sidebar {
+    width: 100% !important;
+    flex-direction: row !important;
+  }
+
+  .inbox-sidebar button {
+    flex: 1 !important;
+    justify-content: center !important;
+  }
+
+  /* Inbox main content pane — no fixed height, fill available space */
+  .inbox-main {
+    height: auto !important;
+    min-height: 400px;
+  }
+
+  /* ======================
+     PROFILE PAGE — Mobile fixes
+     ====================== */
+
+  /* Profile header row — stack vertically */
+  .profile-header {
+    flex-direction: column !important;
+    text-align: center !important;
+    gap: 1rem !important;
+    padding: 2rem 1.5rem !important;
+  }
+
+  .profile-header-info {
+    width: 100%;
+  }
+
+  /* Profile name — prevent overflow */
+  .profile-name {
+    font-size: 1.4rem !important;
+    word-break: break-word !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+  }
+
+  /* Profile email — prevent overflow */
+  .profile-email {
+    word-break: break-all !important;
+    justify-content: center !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* Profile info grid — single column on mobile */
+  .profile-info-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* ======================
+     EVENTS PAGE — Mobile header fix
+     ====================== */
+
+  /* Events page heading — stack icon + text */
+  [style*="fontSize: '3.5rem'"] {
+    font-size: 2rem !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+  }
+
   /* ======================
      FORM INPUTS — Touch friendly
      ====================== */

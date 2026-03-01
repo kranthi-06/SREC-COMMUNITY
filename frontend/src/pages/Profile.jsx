@@ -68,7 +68,7 @@ const Profile = () => {
                 style={{ maxWidth: '700px', margin: '0 auto', overflow: 'hidden' }}
             >
                 {/* Header Section */}
-                <div style={{
+                <div className="profile-header" style={{
                     padding: '3rem',
                     background: profile.role === 'student'
                         ? 'linear-gradient(135deg, rgba(66, 133, 244, 0.1), rgba(0,0,0,0.5))'
@@ -91,12 +91,12 @@ const Profile = () => {
                             {profile.email.charAt(0).toUpperCase()}
                         </div>
                     </ProfileRing>
-                    <div>
-                        <h2 style={{ fontSize: '2.2rem', marginBottom: '0.2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div className="profile-header-info" style={{ minWidth: 0, overflow: 'hidden' }}>
+                        <h2 className="profile-name" style={{ fontSize: '2.2rem', marginBottom: '0.2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
                             {profile.full_name}
                             {profile.is_verified && <BadgeCheck size={28} color="var(--accent-green)" />}
                         </h2>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <p className="profile-email" style={{ color: 'var(--text-muted)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             <Mail size={16} /> {profile.email}
                         </p>
                     </div>
@@ -165,7 +165,7 @@ const Profile = () => {
                             </div>
                         </form>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                        <div className="profile-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
                                 <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Full Name</div>
                                 <div style={{ fontSize: '1.1rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '10px' }}>

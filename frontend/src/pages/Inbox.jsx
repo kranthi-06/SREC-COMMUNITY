@@ -100,18 +100,18 @@ const Inbox = () => {
 
     return (
         <div className="container" style={{ padding: '4rem 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '3rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '3rem', flexWrap: 'wrap' }}>
                 <InboxIcon size={40} color="var(--primary)" />
-                <div>
-                    <h1 style={{ fontSize: '2.5rem', margin: 0 }}>Secure Inbox</h1>
-                    <p style={{ color: 'var(--text-muted)' }}>Direct messages and internal compliance feedback instances</p>
+                <div style={{ minWidth: 0 }}>
+                    <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.5rem)', margin: 0 }}>Secure Inbox</h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.8rem, 2.5vw, 1rem)' }}>Direct messages and internal compliance feedback instances</p>
                 </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '2rem' }}>
+            <div className="inbox-layout" style={{ display: 'flex', gap: '2rem' }}>
 
                 {/* Navigation Sidebar */}
-                <div style={{ width: '250px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div className="inbox-sidebar" style={{ width: '250px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <button
                         onClick={() => { setViewMode('messages'); setSelectedReview(null); }}
                         style={{
@@ -138,7 +138,7 @@ const Inbox = () => {
                 </div>
 
                 {/* Main Content Pane */}
-                <div className="glass-card" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '650px' }}>
+                <div className="glass-card inbox-main" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '650px' }}>
 
                     {viewMode === 'messages' && (
                         <>
