@@ -269,7 +269,7 @@ export const NotificationProvider = ({ children }) => {
             {children}
 
             {/* Permission Banner */}
-            {user && isSecure && permission === 'default' && (
+            {user && permission === 'default' && (
                 <div style={{
                     background: 'var(--accent-blue)', color: 'white', padding: '10px 20px',
                     textAlign: 'center', fontSize: '0.9rem', display: 'flex', justifyContent: 'center',
