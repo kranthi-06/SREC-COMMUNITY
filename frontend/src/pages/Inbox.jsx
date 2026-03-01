@@ -5,6 +5,26 @@ import { Inbox as InboxIcon, Send, Clock, User as UserIcon, AlertCircle, FileTex
 import ProfileRing from '../components/ProfileRing';
 import { useAuth } from '../context/AuthContext';
 
+/**
+ * Resolve file URL — routes private B2 URLs through the media proxy.
+ */
+const getFileUrl = (url) => {
+    if (!url) return null;
+    // B2 private URLs → proxy through our server
+    if (url.includes('backblazeb2.com/file/')) {
+        const match = url.match(/\/file\/[^/]+\/(.+)$/);
+        if (match) {
+            const baseUrl = (import.meta.env.VITE_API_URL || '').replace('/api', '');
+            return `${baseUrl}/api/media/${match[1]}`;
+        }
+    }
+    // Full URLs → use directly
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    // Relative path → prepend backend base
+    const baseUrl = (import.meta.env.VITE_API_URL || '').replace('/api', '');
+    return `${baseUrl}${url}`;
+};
+
 const Inbox = () => {
     const { user } = useAuth();
     const [messages, setMessages] = useState([]);
@@ -181,7 +201,7 @@ const Inbox = () => {
                                                     {msg.message_text}
                                                     {msg.file_url && (
                                                         <div style={{ marginTop: '8px' }}>
-                                                            <a href={msg.file_url} target="_blank" rel="noopener noreferrer" style={{ color: isMyMessage ? '#ddd' : 'var(--primary)', fontSize: '0.85rem' }}>📎 View Attachment</a>
+                                                            <a href={getFileUrl(msg.file_url)} target="_blank" rel="noopener noreferrer" style={{ color: isMyMessage ? '#ddd' : 'var(--primary)', fontSize: '0.85rem' }}>📎 View Attachment</a>
                                                         </div>
                                                     )}
                                                 </div>
