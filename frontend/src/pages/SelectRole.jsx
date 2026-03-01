@@ -5,7 +5,7 @@ import { GraduationCap, Briefcase, ChevronRight } from 'lucide-react';
 
 const SelectRole = () => {
     return (
-        <div className="container" style={{ padding: '6rem 0' }}>
+        <div className="container" style={{ padding: 'clamp(2rem, 8vw, 6rem) 0' }}>
             <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -13,18 +13,18 @@ const SelectRole = () => {
                 style={{
                     maxWidth: '800px',
                     margin: '0 auto',
-                    padding: '4rem 3rem',
+                    padding: 'clamp(1.5rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem)',
                     textAlign: 'center',
                 }}
             >
-                <h1 className="gradient-text" style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>
+                <h1 className="gradient-text" style={{ fontSize: 'clamp(1.6rem, 5vw, 2.5rem)', marginBottom: '1rem' }}>
                     Welcome to CampusPulse
                 </h1>
                 <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '4rem' }}>
                     Please select your portal to continue
                 </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                <div className="role-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
                     {/* Student Portal */}
                     <Link to="/auth/student/login" style={{ textDecoration: 'none' }}>
                         <motion.div
