@@ -103,6 +103,12 @@ export const NotificationProvider = ({ children }) => {
                     return;
                 }
 
+                // Protect against iOS Chrome/Safari which lack PushManager unless added to homescreen
+                if (!registration.pushManager) {
+                    console.warn('Push manager unavailable. (iOS requires "Add to Home Screen" for push support).');
+                    return;
+                }
+
                 // Check strict subscription status
                 const existingSub = await registration.pushManager.getSubscription();
                 if (!existingSub) {
