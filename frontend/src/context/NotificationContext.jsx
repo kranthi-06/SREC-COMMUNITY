@@ -127,8 +127,11 @@ export const NotificationProvider = ({ children }) => {
 
     // Auto-subscribe if already granted previously
     useEffect(() => {
-        if (user && token && 'Notification' in window && Notification.permission === 'granted' && window.isSecureContext) {
-            registerPushSubscription();
+        if (user && token && 'Notification' in window && Notification.permission === 'granted') {
+            const timeout = setTimeout(() => {
+                registerPushSubscription();
+            }, 3000); // Give SW time to load first
+            return () => clearTimeout(timeout);
         }
     }, [user, token]);
 
