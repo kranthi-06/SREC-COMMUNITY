@@ -215,7 +215,7 @@ const QuestionAnalysisCard = ({ question, data, index }) => {
 
             {/* Charts & Breakdown */}
             {total > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '2rem', alignItems: 'center', marginBottom: '1rem' }}>
+                <div className="question-chart-grid" style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '2rem', alignItems: 'center', marginBottom: '1rem' }}>
                     <div style={{ height: '160px' }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <RePieChart>
@@ -888,7 +888,7 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                                     <PieChartIcon size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
                                     Pie Chart
                                 </h4>
-                                <div style={{ height: '220px' }}>
+                                <div style={{ height: '250px' }}>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <RePieChart>
                                             <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
@@ -907,7 +907,7 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                                     <BarChart3 size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
                                     Bar Chart
                                 </h4>
-                                <div style={{ height: '220px' }}>
+                                <div style={{ height: '250px' }}>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={barChartData}>
                                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -1057,106 +1057,85 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                             </div>
                         </div>
 
-                        {/* Table */}
-                        <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: '600px' }}>
-                                <thead>
-                                    <tr style={{ background: 'rgba(0,0,0,0.3)' }}>
-                                        <th style={{
-                                            padding: '12px 16px', textAlign: 'left',
-                                            fontWeight: '700', fontSize: '0.75rem',
-                                            textTransform: 'uppercase', letterSpacing: '0.06em',
-                                            color: 'var(--text-muted)',
-                                            borderBottom: '1px solid rgba(255,255,255,0.06)'
-                                        }}>Name</th>
-                                        {(data.dataset.columns || []).filter(c =>
-                                            !/^(name|student.?name|full.?name|respondent|participant)$/i.test(c.trim())
-                                        ).map(col => (
-                                            <th key={col} style={{
-                                                padding: '12px 16px', textAlign: 'left',
-                                                fontWeight: '700', fontSize: '0.75rem',
-                                                textTransform: 'uppercase', letterSpacing: '0.06em',
-                                                color: 'var(--text-muted)',
-                                                borderBottom: '1px solid rgba(255,255,255,0.06)',
-                                                maxWidth: '250px'
-                                            }}>{col}</th>
-                                        ))}
-                                        <th style={{
-                                            padding: '12px 16px', textAlign: 'center',
-                                            fontWeight: '700', fontSize: '0.75rem',
-                                            textTransform: 'uppercase', letterSpacing: '0.06em',
-                                            color: 'var(--text-muted)',
-                                            borderBottom: '1px solid rgba(255,255,255,0.06)'
-                                        }}>Sentiment</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredResponses.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={100} style={{
-                                                padding: '3rem',
-                                                textAlign: 'center',
-                                                color: 'var(--text-muted)',
-                                                fontStyle: 'italic'
-                                            }}>
-                                                {searchTerm || sentimentFilter !== 'all'
-                                                    ? 'No responses match your search/filter.'
-                                                    : 'No responses found.'
-                                                }
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        filteredResponses.map((resp, idx) => {
-                                            const nonNameCols = (data.dataset.columns || []).filter(c =>
-                                                !/^(name|student.?name|full.?name|respondent|participant)$/i.test(c.trim())
-                                            );
-                                            return (
-                                                <tr key={resp.id} style={{
-                                                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                                                    background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'
-                                                }}>
-                                                    <td style={{
-                                                        padding: '12px 16px',
-                                                        fontWeight: '700',
-                                                        color: 'white',
-                                                        whiteSpace: 'nowrap'
-                                                    }}>
-                                                        <div>
-                                                            {resp.respondent_name || `Respondent ${resp.row_index + 1}`}
-                                                            {resp.respondent_department && (
-                                                                <div style={{
-                                                                    fontSize: '0.7rem',
-                                                                    fontWeight: '500',
-                                                                    color: 'var(--text-muted)',
-                                                                    opacity: 0.7,
-                                                                    marginTop: '2px'
-                                                                }}>
-                                                                    {resp.respondent_department}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    {nonNameCols.map(col => (
-                                                        <td key={col} style={{
-                                                            padding: '12px 16px',
+                        {/* Response Cards */}
+                        <div className="response-cards" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {filteredResponses.length === 0 ? (
+                                <div style={{
+                                    padding: '3rem',
+                                    textAlign: 'center',
+                                    color: 'var(--text-muted)',
+                                    fontStyle: 'italic',
+                                    background: 'rgba(255,255,255,0.02)',
+                                    borderRadius: '12px',
+                                    border: '1px solid rgba(255,255,255,0.06)'
+                                }}>
+                                    {searchTerm || sentimentFilter !== 'all'
+                                        ? 'No responses match your search/filter.'
+                                        : 'No responses found.'
+                                    }
+                                </div>
+                            ) : (
+                                filteredResponses.map((resp, idx) => {
+                                    const nonNameCols = (data.dataset.columns || []).filter(c =>
+                                        !/^(name|student.?name|full.?name|respondent|participant)$/i.test(c.trim())
+                                    );
+                                    return (
+                                        <div key={resp.id} style={{
+                                            background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)',
+                                            borderRadius: '12px',
+                                            border: '1px solid rgba(255,255,255,0.06)',
+                                            padding: '1.2rem',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '0.6rem'
+                                        }}>
+                                            {/* Name + Sentiment */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                                                <div style={{ minWidth: 0 }}>
+                                                    <div style={{ fontWeight: '700', color: 'white', fontSize: '0.95rem' }}>
+                                                        {resp.respondent_name || `Respondent ${resp.row_index + 1}`}
+                                                    </div>
+                                                    {resp.respondent_department && (
+                                                        <div style={{
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: '500',
                                                             color: 'var(--text-muted)',
-                                                            maxWidth: '250px',
+                                                            opacity: 0.7,
+                                                            marginTop: '2px',
                                                             overflow: 'hidden',
                                                             textOverflow: 'ellipsis',
-                                                            wordBreak: 'break-word'
+                                                            whiteSpace: 'nowrap'
                                                         }}>
-                                                            {resp.raw_data?.[col] || '—'}
-                                                        </td>
-                                                    ))}
-                                                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                                                        <SentimentBadge label={resp.sentiment_label} size="small" />
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
+                                                            {resp.respondent_department}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <SentimentBadge label={resp.sentiment_label} size="small" />
+                                            </div>
+                                            {/* Answers */}
+                                            {nonNameCols.map(col => {
+                                                const answer = resp.raw_data?.[col];
+                                                if (!answer || answer === '—') return null;
+                                                return (
+                                                    <div key={col} style={{
+                                                        background: 'rgba(0,0,0,0.2)',
+                                                        padding: '0.7rem 1rem',
+                                                        borderRadius: '8px',
+                                                        borderLeft: '3px solid rgba(139, 92, 246, 0.3)'
+                                                    }}>
+                                                        <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                                                            {col}
+                                                        </div>
+                                                        <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.85)', lineHeight: '1.5', wordBreak: 'break-word' }}>
+                                                            {answer}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
                 </>

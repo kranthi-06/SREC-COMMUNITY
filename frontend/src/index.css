@@ -1560,6 +1560,17 @@ main {
     font-size: 0.75rem !important;
   }
 
+  /* Question analysis card — stack chart + bars */
+  .question-chart-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Overall charts — ensure minimum visible height */
+  .chart-grid>div>div {
+    min-height: 200px;
+  }
+
   /* ======================
      ADMIN USERS TABLE — Mobile card layout
      ====================== */
