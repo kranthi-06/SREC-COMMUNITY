@@ -3,29 +3,23 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
-const hostname = window.location.hostname;
-const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
-const isSecure = window.location.protocol === 'https:';
-const isLocalIP = /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) || /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname) || /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname);
-
+// ─── Service Worker Registration (Production Grade) ────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
-    // DO NOT allow registration from local IP unless HTTPS
-    if (isLocalIP && !isSecure) {
-      console.warn('Service Worker registration blocked: App must run on localhost or HTTPS to support Service Workers. Local IPs are not secure contexts.');
-      return;
-    }
+    // Service Workers require: localhost OR https://
+    const isLocalhost = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+    const isSecure = window.location.protocol === 'https:';
 
     if (!isLocalhost && !isSecure) {
-      console.warn('Service Worker registration blocked: App must run on HTTPS.');
+      console.warn('[SW] Registration skipped: requires HTTPS or localhost');
       return;
     }
 
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registered:', registration);
+      const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      console.log('[SW] Registered:', registration.scope);
     } catch (error) {
-      console.error('Service Worker registration failed:', error);
+      console.error('[SW] Registration failed:', error);
     }
   });
 }
