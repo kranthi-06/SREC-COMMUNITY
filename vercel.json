@@ -31,8 +31,24 @@
             "dest": "/frontend/favicon.svg"
         },
         {
+            "src": "/favicon.png",
+            "dest": "/frontend/favicon.png"
+        },
+        {
             "src": "/vite.svg",
             "dest": "/frontend/vite.svg"
+        },
+        {
+            "src": "/sw.js",
+            "dest": "/frontend/sw.js"
+        },
+        {
+            "src": "/manifest.json",
+            "dest": "/frontend/manifest.json"
+        },
+        {
+            "src": "/icons/(.*)",
+            "dest": "/frontend/icons/$1"
         },
         {
             "src": "/(.*)",
