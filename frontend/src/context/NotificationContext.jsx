@@ -96,22 +96,27 @@ export const NotificationProvider = ({ children }) => {
 
         if (Notification.permission === 'granted') {
             try {
-                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                // Try service worker first (best for Android/mobile)
+                if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
                     navigator.serviceWorker.ready.then(registration => {
                         registration.showNotification(title, {
                             body: message,
                             icon: '/icons/icon-192.png',
                             badge: '/icons/icon-192.png',
-                            vibrate: [200, 100, 200]
+                            vibrate: [200, 100, 200, 100, 200]
                         });
-                    }).catch(() => {
+                    }).catch(error => {
+                        console.error('Service worker notification failed, falling back:', error);
                         new Notification(title, { body: message, icon: '/icons/icon-192.png' });
                     });
                 } else {
+                    // Fallback to standard web notification API
                     new Notification(title, { body: message, icon: '/icons/icon-192.png' });
                 }
             } catch (e) {
                 console.error("Native notification failed", e);
+                // Absolute lowest level fallback if wrapped in a weird web view
+                new Notification(title, { body: message });
             }
         }
     };
