@@ -1169,7 +1169,7 @@ main {
 
   /* Nav */
   nav {
-    height: 70px;
+    height: 60px;
     padding: 0 0.5rem;
   }
 
@@ -1206,7 +1206,7 @@ main {
 
   /* Main content */
   main {
-    padding-top: 80px !important;
+    padding-top: 68px !important;
   }
 
   .container {

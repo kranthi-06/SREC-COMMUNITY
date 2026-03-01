@@ -253,22 +253,18 @@ const Community = () => {
 
     return (
         <div className="community-container" style={{ padding: 'clamp(1rem, 5vw, 2rem) clamp(1rem, 5vw, 0rem) 6rem', maxWidth: '650px', margin: '0 auto' }}>
-            {/* Header / Top Bar */}
+            {/* Header / Top Bar — scrolls with content, not sticky */}
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '2rem',
-                position: 'sticky',
-                top: '100px',
-                zIndex: 100,
-                background: 'var(--bg-main)',
-                padding: '10px 0'
+                marginBottom: '1.5rem',
+                padding: '0'
             }}>
-                <h1 className="gradient-text" style={{ fontSize: '2.2rem', fontWeight: '900' }}>CampusPulse Feed</h1>
+                <h1 className="gradient-text" style={{ fontSize: 'clamp(1.5rem, 5vw, 2.2rem)', fontWeight: '900' }}>CampusPulse Feed</h1>
             </div>
 
-            {/* Floating Create Button - Top Right */}
+            {/* Floating Create Button - Bottom Right */}
             {canCreatePost && (
                 <motion.button
                     whileHover={{ scale: 1.1, translateY: -2 }}
@@ -277,9 +273,9 @@ const Community = () => {
                     className="floating-create-btn"
                     style={{
                         position: 'fixed',
-                        bottom: '40px',
-                        right: '40px',
-                        width: '55px', height: '55px', borderRadius: '50%',
+                        bottom: 'clamp(20px, 5vw, 40px)',
+                        right: 'clamp(16px, 4vw, 40px)',
+                        width: '50px', height: '50px', borderRadius: '50%',
                         background: 'linear-gradient(135deg, var(--accent-green), var(--accent-olive))',
                         color: 'white', border: 'none', cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -288,7 +284,7 @@ const Community = () => {
                     }}
                     title="Create Post"
                 >
-                    <Plus size={28} />
+                    <Plus size={24} />
                 </motion.button>
             )}
 
