@@ -1546,6 +1546,14 @@ main {
   .chart-grid {
     grid-template-columns: 1fr !important;
     gap: 1.5rem !important;
+    overflow: hidden;
+    width: 100% !important;
+  }
+
+  .chart-grid>div {
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden;
   }
 
   /* Filter buttons: wrap on mobile */
@@ -1564,6 +1572,12 @@ main {
   .question-chart-grid {
     grid-template-columns: 1fr !important;
     gap: 1rem !important;
+  }
+
+  .question-chart-grid>div {
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden;
   }
 
   /* Overall charts — ensure minimum visible height */

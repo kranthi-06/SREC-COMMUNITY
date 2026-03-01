@@ -216,7 +216,7 @@ const QuestionAnalysisCard = ({ question, data, index }) => {
             {/* Charts & Breakdown */}
             {total > 0 && (
                 <div className="question-chart-grid" style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '2rem', alignItems: 'center', marginBottom: '1rem' }}>
-                    <div style={{ height: '160px' }}>
+                    <div style={{ height: '160px', width: '100%', overflow: 'hidden' }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <RePieChart>
                                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="value">
@@ -823,7 +823,8 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                     border: '1px solid rgba(255,255,255,0.06)',
                     borderRadius: '20px',
                     padding: '2rem',
-                    marginBottom: '2.5rem'
+                    marginBottom: '2.5rem',
+                    overflow: 'hidden'
                 }}>
                     <h3 style={{
                         margin: '0 0 1.5rem',
@@ -883,12 +884,12 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                     {/* Charts: Pie + Bar */}
                     {sentimentSummary.analyzed > 0 && (
                         <div className="chart-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '1.5rem' }}>
-                            <div>
+                            <div style={{ width: '100%', minWidth: 0 }}>
                                 <h4 style={{ margin: '0 0 10px', fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '700' }}>
                                     <PieChartIcon size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
                                     Pie Chart
                                 </h4>
-                                <div style={{ height: '250px' }}>
+                                <div style={{ height: '250px', width: '100%', overflow: 'hidden' }}>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <RePieChart>
                                             <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
@@ -902,12 +903,12 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                                     </ResponsiveContainer>
                                 </div>
                             </div>
-                            <div>
+                            <div style={{ width: '100%', minWidth: 0 }}>
                                 <h4 style={{ margin: '0 0 10px', fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '700' }}>
                                     <BarChart3 size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
                                     Bar Chart
                                 </h4>
-                                <div style={{ height: '250px' }}>
+                                <div style={{ height: '250px', width: '100%', overflow: 'hidden' }}>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={barChartData}>
                                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
