@@ -72,8 +72,20 @@ export const NotificationProvider = ({ children }) => {
         return () => newSocket.disconnect();
     }, [user, token]);
 
-    const [permission, setPermission] = useState('Notification' in window ? Notification.permission : 'denied');
-    const [isSecure, setIsSecure] = useState(window.isSecureContext);
+    const [permission, setPermission] = useState(
+        'Notification' in window ? Notification.permission : 'denied'
+    );
+
+    // Watch for native permission changes 
+    useEffect(() => {
+        if ('navigator' in window && 'permissions' in navigator) {
+            navigator.permissions.query({ name: 'notifications' }).then((status) => {
+                status.onchange = () => {
+                    setPermission(status.state);
+                };
+            });
+        }
+    }, []);
 
     // Helper to convert VAPID keys
     function urlBase64ToUint8Array(base64String) {
