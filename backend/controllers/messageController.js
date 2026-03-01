@@ -2,9 +2,11 @@
  * Message Controller — Inbox Messaging System
  * ==============================================
  * Admin-to-user messaging with file attachments.
+ * Attachments are uploaded to B2 cloud storage.
  * All messages are audit-logged.
  */
 const db = require('../db');
+const b2Service = require('../services/b2Service');
 
 /**
  * GET /api/messages
@@ -63,14 +65,23 @@ exports.getInbox = async (req, res) => {
 /**
  * POST /api/messages/send
  * Send a message to one or more users. Admin only.
+ * Attachments are uploaded to B2 cloud storage.
  */
 exports.sendMessage = async (req, res) => {
     try {
         const { receiver_ids, message_text } = req.body;
         let file_url = null;
 
+        // Upload attachment to B2 cloud storage (not local disk)
         if (req.file) {
-            file_url = `/uploads/${req.file.filename}`;
+            const result = await b2Service.uploadFile(
+                req.file.buffer,
+                req.file.originalname,
+                req.file.mimetype,
+                req.user.userId,
+                req.user.role
+            );
+            file_url = result.fileUrl;
         }
 
         // Parse receiver IDs
