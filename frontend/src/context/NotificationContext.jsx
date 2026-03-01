@@ -91,6 +91,47 @@ export const NotificationProvider = ({ children }) => {
         return outputArray;
     }
 
+    // Helper to register Web Push Subscription
+    const registerPushSubscription = async () => {
+        try {
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.ready;
+                const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+                if (!vapidPublicKey) {
+                    console.error('Missing VAPID public key!');
+                    return;
+                }
+
+                // Check strict subscription status
+                const existingSub = await registration.pushManager.getSubscription();
+                if (!existingSub) {
+                    const subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+                    });
+
+                    // Send to backend
+                    if (token) {
+                        await axios.post(`${import.meta.env.VITE_API_URL}/notifications/subscribe`, subscription, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        console.log('Web Push subscription correctly saved to DB');
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Failed to register push subscription:', err);
+        }
+    };
+
+    // Auto-subscribe if already granted previously
+    useEffect(() => {
+        if (user && token && 'Notification' in window && Notification.permission === 'granted' && window.isSecureContext) {
+            registerPushSubscription();
+        }
+    }, [user, token]);
+
     // Request Notification Permission (On click)
     const requestPermission = async () => {
         if (!('Notification' in window)) {
@@ -103,30 +144,7 @@ export const NotificationProvider = ({ children }) => {
 
             if (perm === 'granted') {
                 showToast("Success", "Native notifications enabled!");
-
-                // Subscribe to Web Push
-                if ('serviceWorker' in navigator) {
-                    const registration = await navigator.serviceWorker.ready;
-                    const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-
-                    if (!vapidPublicKey) {
-                        console.error('Missing VAPID public key!');
-                        return;
-                    }
-
-                    const subscription = await registration.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-                    });
-
-                    // Send to backend
-                    if (token) {
-                        await axios.post(`${import.meta.env.VITE_API_URL}/notifications/subscribe`, subscription, {
-                            headers: { Authorization: `Bearer ${token}` }
-                        });
-                        console.log('Web Push subscription saved to DB');
-                    }
-                }
+                await registerPushSubscription();
             }
         } catch (e) {
             console.error("Permission request failed", e);
