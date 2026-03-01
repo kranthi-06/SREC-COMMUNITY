@@ -1065,6 +1065,7 @@ main {
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
   overflow-y: auto;
+  pointer-events: auto;
 }
 
 .mobile-menu-content {
