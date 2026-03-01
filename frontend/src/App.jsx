@@ -25,6 +25,7 @@ import Community from './pages/Community';
 import Events from './pages/Events';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProfileRing from './components/ProfileRing';
+import SplashScreen from './components/SplashScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import NotificationBell from './components/NotificationBell';
@@ -411,9 +412,21 @@ function AppContent() {
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(() => {
+    // Only show splash once per session
+    if (sessionStorage.getItem('splashShown')) return false;
+    return true;
+  });
+
+  const handleSplashComplete = () => {
+    sessionStorage.setItem('splashShown', 'true');
+    setShowSplash(false);
+  };
+
   return (
     <AuthProvider>
       <NotificationProvider>
+        {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
         <Router>
           <AppContent />
         </Router>
