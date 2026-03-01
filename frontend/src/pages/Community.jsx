@@ -252,7 +252,7 @@ const Community = () => {
     };
 
     return (
-        <div className="container" style={{ padding: '2rem 0 6rem', maxWidth: '650px', margin: '0 auto' }}>
+        <div className="community-container" style={{ padding: 'clamp(1rem, 5vw, 2rem) clamp(1rem, 5vw, 0rem) 6rem', maxWidth: '650px', margin: '0 auto' }}>
             {/* Header / Top Bar */}
             <div style={{
                 display: 'flex',
@@ -274,9 +274,10 @@ const Community = () => {
                     whileHover={{ scale: 1.1, translateY: -2 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setIsCreateModalOpen(true)}
+                    className="floating-create-btn"
                     style={{
                         position: 'fixed',
-                        top: '120px',
+                        bottom: '40px',
                         right: '40px',
                         width: '55px', height: '55px', borderRadius: '50%',
                         background: 'linear-gradient(135deg, var(--accent-green), var(--accent-olive))',

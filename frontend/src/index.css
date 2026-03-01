@@ -1824,6 +1824,32 @@ main {
     font-size: 0.75rem;
     opacity: 0.6;
   }
+
+  /* ======================
+     COMMUNITY FEED — Mobile
+     ====================== */
+  .community-container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .floating-create-btn {
+    bottom: 20px !important;
+    right: 20px !important;
+    width: 50px !important;
+    height: 50px !important;
+  }
+
+  /* ======================
+     EVENT REVIEWS — Mobile
+     ====================== */
+  .event-reviews-content {
+    margin-top: -30px !important;
+    border-radius: 20px 20px 0 0 !important;
+    position: relative;
+    z-index: 5;
+    background: var(--bg-main) !important;
+  }
 }
 
 /* ---- Small mobile: 480px ---- */

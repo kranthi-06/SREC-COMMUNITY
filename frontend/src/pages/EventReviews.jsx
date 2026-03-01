@@ -218,7 +218,7 @@ const EventReviews = () => {
                         </div>
                     )}
 
-                    <div style={{ padding: '2rem 2.5rem' }}>
+                    <div className="event-reviews-content" style={{ padding: 'clamp(1.2rem, 5vw, 2.5rem)' }}>
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '1rem' }}>
                             <span
                                 style={{
@@ -351,9 +351,10 @@ const EventReviews = () => {
                 ) : (
                     /* Summary stats cards */
                     <div
+                        className="event-reviews-overview-grid"
                         style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                             gap: '1.5rem',
                         }}
                     >
@@ -624,9 +625,9 @@ const EventReviews = () => {
                                     initial={{ opacity: 0, y: 15 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.65 + index * 0.05 }}
-                                    className="glass-card"
+                                    className="glass-card review-card"
                                     style={{
-                                        padding: '1.5rem 2rem',
+                                        padding: 'clamp(1rem, 4vw, 2rem)',
                                         borderLeft: `4px solid ${getSentimentColor(review.sentiment)}`,
                                     }}
                                 >
