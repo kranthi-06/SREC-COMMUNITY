@@ -384,7 +384,7 @@ const ForgotPassword = ({ routeType }) => {
                                             onKeyDown={(e) => handleOTPKeyDown(idx, e)}
                                             style={{
                                                 width: '52px', height: '58px',
-                                                textAlign: 'center', fontSize: '1.4rem', fontWeight: '700',
+                                                textAlign: 'center', fontSize: '1.5rem', fontWeight: '800',
                                                 borderRadius: '14px',
                                                 border: digit ? `2px solid ${isStudent ? 'var(--g-blue)' : 'var(--primary)'}` : '1px solid var(--glass-border)',
                                                 background: 'var(--glass-bg)',
@@ -392,6 +392,7 @@ const ForgotPassword = ({ routeType }) => {
                                                 outline: 'none',
                                                 transition: 'all 0.2s ease',
                                                 caretColor: isStudent ? 'var(--g-blue)' : 'var(--primary)',
+                                                WebkitTextFillColor: 'var(--text-primary)',
                                             }}
                                             onFocus={(e) => e.target.style.borderColor = isStudent ? 'var(--g-blue)' : 'var(--primary)'}
                                             onBlur={(e) => !digit && (e.target.style.borderColor = 'var(--glass-border)')}

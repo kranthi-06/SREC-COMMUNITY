@@ -458,13 +458,15 @@ exports.verifyForgotOTP = async (req, res) => {
             return res.status(400).json({ error: 'Email and OTP are required.' });
         }
 
-        const result = await db.query(`
-            SELECT * FROM otp_verifications 
-            WHERE email = $1 AND otp = $2
-        `, [normalizedEmail, otp]);
+        const otpString = String(otp).trim();
+
+        const result = await db.query(
+            'SELECT * FROM otp_verifications WHERE email = $1 AND otp = $2',
+            [normalizedEmail, otpString]
+        );
 
         if (result.rows.length === 0) {
-            return res.status(400).json({ error: 'Invalid OTP.' });
+            return res.status(400).json({ error: 'Invalid OTP. Please check and try again.' });
         }
 
         const otpRecord = result.rows[0];
@@ -480,16 +482,19 @@ exports.verifyForgotOTP = async (req, res) => {
         const resetExpiry = new Date(Date.now() + 10 * 60000); // 10 mins
 
         // Store reset token hash in otp_verifications (reuse the row)
-        await db.query(`
-            UPDATE otp_verifications 
-            SET otp = $1, expires_at = $2 
-            WHERE email = $3
-        `, [resetTokenHash, resetExpiry, normalizedEmail]);
+        await db.query(
+            'UPDATE otp_verifications SET otp = $1, expires_at = $2 WHERE email = $3',
+            [resetTokenHash, resetExpiry, normalizedEmail]
+        );
 
-        // Audit
-        const userResult = await db.query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
-        if (userResult.rows.length > 0) {
-            await req.audit('FORGOT_PASSWORD_OTP_VERIFIED', userResult.rows[0].id, { email: normalizedEmail });
+        // Audit (non-blocking — never fail the main flow)
+        try {
+            const userResult = await db.query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
+            if (userResult.rows.length > 0 && req.audit) {
+                await req.audit('FORGOT_PASSWORD_OTP_VERIFIED', userResult.rows[0].id, { email: normalizedEmail });
+            }
+        } catch (auditErr) {
+            console.warn('Audit log failed (non-blocking):', auditErr.message);
         }
 
         res.status(200).json({
@@ -497,7 +502,7 @@ exports.verifyForgotOTP = async (req, res) => {
             resetToken
         });
     } catch (error) {
-        console.error('Verify Forgot OTP Error:', error);
+        console.error('Verify Forgot OTP Error:', error.message, error.stack?.substring(0, 300));
         res.status(500).json({ error: 'Server error during OTP verification.' });
     }
 };
