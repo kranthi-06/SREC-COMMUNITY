@@ -366,6 +366,13 @@ input::placeholder {
   opacity: 0.5;
 }
 
+/* Native <option> elements always render on the OS's
+   light dropdown background—force dark text so they stay readable */
+select option {
+  background: #ffffff;
+  color: #1a1a1a;
+}
+
 /* ============================================
    ALERTS
    ============================================ */
