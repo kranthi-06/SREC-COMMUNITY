@@ -406,7 +406,7 @@ exports.getDatasetAnalysis = async (req, res) => {
             ? parseFloat((sentimentSummary.totalScore / sentimentSummary.analyzed).toFixed(3))
             : null;
 
-        // Per-question breakdown
+        // Per-question breakdown (legacy)
         const columns = dataset.columns || [];
         const nameCol = columns.find(c =>
             /^(name|student.?name|full.?name|respondent|participant)$/i.test(c.trim())
@@ -437,7 +437,32 @@ exports.getDatasetAnalysis = async (req, res) => {
             });
         });
 
-        res.json({ dataset, responses, sentimentSummary, questionAnalysis, questionColumns });
+        // Fetch rich question-wise AI analysis from question_analysis table
+        const qaResult = await db.query(
+            'SELECT * FROM question_analysis WHERE dataset_id = $1 ORDER BY created_at ASC',
+            [datasetId]
+        );
+        const questionAnalysisAI = qaResult.rows.map(qa => ({
+            question_id: qa.question_id,
+            question_text: qa.question_text,
+            question_type: qa.question_type,
+            total_responses: qa.total_responses,
+            sentiment_distribution: {
+                positive: qa.positive_count,
+                neutral: qa.neutral_count,
+                negative: qa.negative_count
+            },
+            top_keywords: qa.keywords_json || [],
+            common_themes: qa.themes_json || [],
+            complaints: qa.complaints_json || [],
+            suggestions: qa.suggestions_json || [],
+            rating_average: qa.rating_average ? parseFloat(qa.rating_average) : null,
+            rating_distribution: qa.rating_distribution_json || {},
+            ai_model: qa.ai_model,
+            analyzed_at: qa.updated_at
+        }));
+
+        res.json({ dataset, responses, sentimentSummary, questionAnalysis, questionColumns, questionAnalysisAI });
     } catch (error) {
         console.error('Error fetching dataset analysis:', error);
         res.status(500).json({ error: 'Server error fetching analysis' });

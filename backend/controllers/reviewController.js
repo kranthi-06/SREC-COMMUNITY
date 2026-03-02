@@ -6,7 +6,7 @@
  * All actions are audit-logged.
  */
 const db = require('../db');
-const { processResponseSentiment } = require('../services/sentimentService');
+const { processResponseSentiment, analyzeReviewQuestions, classifyQuestionType, classifyOptionSentiment } = require('../services/sentimentService');
 
 /**
  * POST /api/reviews/admin/send-quick
@@ -236,7 +236,6 @@ exports.getReviewAnalytics = async (req, res) => {
 
             for (const [qId, ans] of Object.entries(answers)) {
                 if (!distributions[qId]) distributions[qId] = {};
-                // For TEXT_BASED, don't aggregate the text as distribution options
                 const question = requestData.questions.find(q => q.id === qId);
                 if (question && question.type !== 'TEXT_BASED') {
                     distributions[qId][ans] = (distributions[qId][ans] || 0) + 1;
@@ -255,6 +254,31 @@ exports.getReviewAnalytics = async (req, res) => {
             ? parseFloat((sentimentSummary.totalScore / sentimentSummary.analyzed).toFixed(3))
             : null;
 
+        // Fetch question-wise AI analysis from question_analysis table
+        const qaResult = await db.query(
+            'SELECT * FROM question_analysis WHERE request_id = $1 ORDER BY created_at ASC',
+            [requestId]
+        );
+        const questionAnalysis = qaResult.rows.map(qa => ({
+            question_id: qa.question_id,
+            question_text: qa.question_text,
+            question_type: qa.question_type,
+            total_responses: qa.total_responses,
+            sentiment_distribution: {
+                positive: qa.positive_count,
+                neutral: qa.neutral_count,
+                negative: qa.negative_count
+            },
+            top_keywords: qa.keywords_json || [],
+            common_themes: qa.themes_json || [],
+            complaints: qa.complaints_json || [],
+            suggestions: qa.suggestions_json || [],
+            rating_average: qa.rating_average ? parseFloat(qa.rating_average) : null,
+            rating_distribution: qa.rating_distribution_json || {},
+            ai_model: qa.ai_model,
+            analyzed_at: qa.updated_at
+        }));
+
         res.json({
             request: requestData,
             total_sent: parseInt(sentCount.rows[0].count),
@@ -263,6 +287,7 @@ exports.getReviewAnalytics = async (req, res) => {
             distributions,
             departmentBreakdown,
             sentimentSummary,
+            questionAnalysis,
             raw_responses: responses.rows.map(r => ({
                 ...r,
                 student_name: r.student_name || null
@@ -271,6 +296,45 @@ exports.getReviewAnalytics = async (req, res) => {
     } catch (error) {
         console.error('Error computing analytics:', error);
         res.status(500).json({ error: 'Internal Server Error Computing Analytics' });
+    }
+};
+
+/**
+ * POST /api/reviews/admin/analyze/:requestId
+ * Trigger question-wise AI analysis for a review request.
+ */
+exports.analyzeReview = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+
+        const requestCheck = await db.query('SELECT id, title FROM review_requests WHERE id = $1', [requestId]);
+        if (requestCheck.rows.length === 0) return res.status(404).json({ error: 'Review not found' });
+
+        const responseCount = await db.query(
+            'SELECT COUNT(*) as count FROM review_responses WHERE request_id = $1',
+            [requestId]
+        );
+        if (parseInt(responseCount.rows[0].count) === 0) {
+            return res.status(400).json({ error: 'No responses to analyze yet.' });
+        }
+
+        console.log(`[Analysis] Starting question-wise analysis for request ${requestId}...`);
+        const results = await analyzeReviewQuestions(requestId);
+
+        if (req.audit) {
+            await req.audit('REVIEW_ANALYZE', requestId, {
+                title: requestCheck.rows[0].title,
+                questionsAnalyzed: results.length
+            });
+        }
+
+        res.json({
+            message: `AI analysis complete — ${results.length} questions analyzed.`,
+            results
+        });
+    } catch (error) {
+        console.error('Error analyzing review:', error);
+        res.status(500).json({ error: 'Analysis failed: ' + error.message });
     }
 };
 

@@ -14,6 +14,7 @@ router.post('/admin/create', protect, adminOnly, reviewController.createReviewRe
 router.post('/admin/send-quick', protect, adminOnly, reviewController.sendQuickReview);
 router.get('/admin/requests', protect, adminOnly, reviewController.getAdminReviewRequests);
 router.get('/admin/analytics/:requestId', protect, adminOnly, reviewController.getReviewAnalytics);
+router.post('/admin/analyze/:requestId', protect, adminOnly, reviewController.analyzeReview);
 router.get('/admin/export/:requestId', protect, adminOnly, reviewController.exportReviewData);
 
 // === STUDENT ROUTES ===
