@@ -3,15 +3,14 @@ const db = require('./db');
 
 async function fix() {
     try {
-        // Drop and recreate with correct column types
         console.log('Dropping old question_analysis table...');
         await db.query('DROP TABLE IF EXISTS question_analysis');
 
-        console.log('Creating question_analysis with UUID support...');
+        console.log('Creating question_analysis with correct column types...');
         await db.query(`
             CREATE TABLE question_analysis (
                 id SERIAL PRIMARY KEY,
-                request_id INTEGER,
+                request_id UUID,
                 dataset_id UUID,
                 question_id VARCHAR(255),
                 question_text TEXT NOT NULL,
@@ -37,7 +36,14 @@ async function fix() {
         await db.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_qa_unique_request ON question_analysis(request_id, question_id) WHERE request_id IS NOT NULL');
         await db.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_qa_unique_dataset ON question_analysis(dataset_id, question_id) WHERE dataset_id IS NOT NULL');
 
-        console.log('✅ question_analysis table recreated with UUID dataset_id');
+        console.log('✅ question_analysis table recreated with UUID for both request_id AND dataset_id');
+
+        // Verify
+        const cols = await db.query(
+            "SELECT column_name, data_type FROM information_schema.columns WHERE table_name='question_analysis' ORDER BY ordinal_position"
+        );
+        cols.rows.forEach(r => console.log(`  ${r.column_name}: ${r.data_type}`));
+
         process.exit(0);
     } catch (e) {
         console.error('ERROR:', e.message);
