@@ -499,7 +499,7 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <button onClick={onBack} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '10px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    <button onClick={onBack} style={{ background: 'var(--glass-bg, rgba(255,255,255,0.05))', border: '1px solid var(--glass-border, rgba(255,255,255,0.1))', borderRadius: '10px', padding: '10px', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                         <ArrowLeft size={20} />
                     </button>
                     <div>
@@ -649,7 +649,7 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                             <div style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
                                 <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                                 <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by student name..."
-                                    style={{ width: '100%', padding: '12px 14px 12px 40px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontSize: '0.9rem' }} />
+                                    style={{ width: '100%', padding: '12px 14px 12px 40px', background: 'var(--glass-bg, rgba(0,0,0,0.1))', border: '1px solid var(--glass-border, rgba(255,255,255,0.1))', borderRadius: '10px', color: 'var(--text-main)', fontSize: '0.9rem' }} />
                             </div>
                             <div className="sentiment-filter-row" style={{ display: 'flex', gap: '6px' }}>
                                 {['all', 'Positive', 'Neutral', 'Negative'].map(f => (
@@ -676,10 +676,10 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                                 filteredResponses.map((resp, idx) => {
                                     const nonNameCols = (data.dataset.columns || []).filter(c => !/^(name|student.?name|full.?name|respondent|participant)$/i.test(c.trim()));
                                     return (
-                                        <div key={resp.id} style={{ background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)', padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                        <div key={resp.id} style={{ background: 'var(--glass-bg, rgba(255,255,255,0.02))', borderRadius: '12px', border: '1px solid var(--glass-border, rgba(255,255,255,0.06))', padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                                                 <div style={{ minWidth: 0 }}>
-                                                    <div style={{ fontWeight: '700', color: 'white', fontSize: '0.95rem' }}>{resp.respondent_name || `Respondent ${resp.row_index + 1}`}</div>
+                                                    <div style={{ fontWeight: '700', color: 'var(--text-main)', fontSize: '0.95rem' }}>{resp.respondent_name || `Respondent ${resp.row_index + 1}`}</div>
                                                     {resp.respondent_department && <div style={{ fontSize: '0.75rem', fontWeight: '500', color: 'var(--text-muted)', opacity: 0.7, marginTop: '2px' }}>{resp.respondent_department}</div>}
                                                 </div>
                                                 <SentimentBadge label={resp.sentiment_label} size="small" />
@@ -688,9 +688,9 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
                                                 const answer = resp.raw_data?.[col];
                                                 if (!answer || answer === '—') return null;
                                                 return (
-                                                    <div key={col} style={{ background: 'rgba(0,0,0,0.2)', padding: '0.7rem 1rem', borderRadius: '8px', borderLeft: '3px solid rgba(139,92,246,0.3)' }}>
+                                                    <div key={col} style={{ background: 'var(--glass-bg, rgba(0,0,0,0.05))', padding: '0.7rem 1rem', borderRadius: '8px', borderLeft: '3px solid rgba(139,92,246,0.3)' }}>
                                                         <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>{col}</div>
-                                                        <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.85)', lineHeight: '1.5', wordBreak: 'break-word' }}>{answer}</div>
+                                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: '1.5', wordBreak: 'break-word' }}>{answer}</div>
                                                     </div>
                                                 );
                                             })}
