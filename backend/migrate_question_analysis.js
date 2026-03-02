@@ -1,21 +1,18 @@
-/**
- * Migration: Create question_analysis table
- * ==========================================
- * Stores per-question AI analysis results for both
- * dispatched review forms and imported datasets.
- */
 require('dotenv').config();
 const db = require('./db');
 
-async function migrate() {
+async function fix() {
     try {
-        console.log('Creating question_analysis table...');
+        // Drop and recreate with correct column types
+        console.log('Dropping old question_analysis table...');
+        await db.query('DROP TABLE IF EXISTS question_analysis');
 
+        console.log('Creating question_analysis with UUID support...');
         await db.query(`
-            CREATE TABLE IF NOT EXISTS question_analysis (
+            CREATE TABLE question_analysis (
                 id SERIAL PRIMARY KEY,
                 request_id INTEGER,
-                dataset_id INTEGER,
+                dataset_id UUID,
                 question_id VARCHAR(255),
                 question_text TEXT NOT NULL,
                 question_type VARCHAR(50) DEFAULT 'text',
@@ -35,22 +32,16 @@ async function migrate() {
             )
         `);
 
-        console.log('✅ question_analysis table created successfully');
+        await db.query('CREATE INDEX IF NOT EXISTS idx_qa_request_id ON question_analysis(request_id)');
+        await db.query('CREATE INDEX IF NOT EXISTS idx_qa_dataset_id ON question_analysis(dataset_id)');
+        await db.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_qa_unique_request ON question_analysis(request_id, question_id) WHERE request_id IS NOT NULL');
+        await db.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_qa_unique_dataset ON question_analysis(dataset_id, question_id) WHERE dataset_id IS NOT NULL');
 
-        // Create index for fast lookups
-        await db.query(`
-            CREATE INDEX IF NOT EXISTS idx_qa_request_id ON question_analysis(request_id);
-        `);
-        await db.query(`
-            CREATE INDEX IF NOT EXISTS idx_qa_dataset_id ON question_analysis(dataset_id);
-        `);
-
-        console.log('✅ Indexes created');
+        console.log('✅ question_analysis table recreated with UUID dataset_id');
         process.exit(0);
-    } catch (error) {
-        console.error('❌ Migration failed:', error.message);
+    } catch (e) {
+        console.error('ERROR:', e.message);
         process.exit(1);
     }
 }
-
-migrate();
+fix();

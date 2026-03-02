@@ -346,7 +346,25 @@ const SentimentDashboard = ({ datasetId, requestId, onBack }) => {
         try {
             if (mode === 'import') {
                 const res = await axios.get(`${API_URL}/import/dataset/${datasetId}`);
-                setData(res.data);
+                const raw = res.data;
+                // Normalize import data to match dashboard expectations
+                const normalizedImport = {
+                    dataset: raw.dataset,
+                    sentimentSummary: raw.sentimentSummary || { Positive: 0, Neutral: 0, Negative: 0 },
+                    questionAnalysis: raw.questionAnalysisAI || [],
+                    responses: (raw.responses || []).map((r, idx) => ({
+                        id: r.id || idx,
+                        row_index: r.row_index ?? idx,
+                        respondent_name: r.respondent_name || `Respondent ${idx + 1}`,
+                        respondent_department: null,
+                        raw_data: r.raw_data || {},
+                        sentiment_label: r.sentiment_label || null,
+                        sentiment_score: r.sentiment_score || 0,
+                        ai_confidence: r.ai_confidence || 0,
+                        analyzed_at: r.analyzed_at
+                    })),
+                };
+                setData(normalizedImport);
             } else {
                 const res = await axios.get(`${API_URL}/reviews/admin/analytics/${requestId}`);
                 const raw = res.data;
