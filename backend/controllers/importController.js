@@ -12,7 +12,7 @@
  */
 const db = require('../db');
 const axios = require('axios');
-const { analyzeSentimentWithGroq } = require('../services/sentimentService');
+const { analyzeSentimentWithGroq, classifyQuestionType, analyzeDatasetQuestions } = require('../services/sentimentService');
 
 const BATCH_SIZE = 10; // Rows per batch — fits well within Vercel's timeout
 
@@ -209,10 +209,11 @@ exports.processBatch = async (req, res) => {
         }
         const dataset = dsResult.rows[0];
         const columns = dataset.columns || [];
-        const nameColKey = columns.find(c =>
-            /^(name|student.?name|full.?name|respondent|participant)$/i.test(c.trim())
-        );
-        const textColumns = columns.filter(c => c !== nameColKey);
+        // Only analyze opinion-based columns — skip PII fields
+        const textColumns = columns.filter(c => {
+            const qType = classifyQuestionType({ text: c, type: '', id: c });
+            return qType !== 'skip'; // Only keep analyzable columns
+        });
 
         // Find next batch of unanalyzed rows
         const unanalyzed = await db.query(`
@@ -235,6 +236,15 @@ exports.processBatch = async (req, res) => {
                 SET status = 'complete', analyzed_rows = $2, ai_summary = $3, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $1
             `, [datasetId, parseInt(totalAnalyzed.rows[0].count), aiSummary]);
+
+            // Trigger question-wise AI analysis (non-blocking)
+            try {
+                console.log('[Import] Triggering question-wise analysis for dataset', datasetId);
+                await analyzeDatasetQuestions(datasetId);
+                console.log('[Import] ✅ Question-wise analysis complete');
+            } catch (qaErr) {
+                console.error('[Import] Question-wise analysis failed (non-critical):', qaErr.message);
+            }
 
             return res.json({
                 analyzed: parseInt(totalAnalyzed.rows[0].count),
